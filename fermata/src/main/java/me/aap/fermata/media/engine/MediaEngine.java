@@ -295,4 +295,5 @@ public interface MediaEngine extends Closeable {
 
 		default void onSubtitleStreamChanged(MediaEngine engine, @Nullable SubtitleStreamInfo info) {}
 	}
+	default void setVolume(float volume) {}
 }

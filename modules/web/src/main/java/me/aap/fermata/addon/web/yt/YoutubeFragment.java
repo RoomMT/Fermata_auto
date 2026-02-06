@@ -4,7 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
+import android.webkit.WebView;
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -41,7 +41,9 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 	private static final String DEFAULT_URL = "https://m.youtube.com";
 	private static final Set<String> DEFAULT_URLS = new HashSet<>(Arrays.asList(DEFAULT_URL, DEFAULT_URL + '/'));
 	private static final Pref<LongSupplier> RESUME_POS = Pref.l("YT_RESUME_POS", 0L);
-	private boolean playOnResume;
+	
+	// Biến này không còn cần thiết nữa vì YoutubeWebView tự lo việc resume
+	// private boolean playOnResume; 
 
 	@Override
 	public int getFragmentId() {
@@ -54,7 +56,7 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 		return inflater.inflate(R.layout.youtube, container, false);
 	}
 
-	@Override
+	/*@Override
 	public void onViewCreated(@NonNull View view, @Nullable Bundle state) {
 		YoutubeAddon addon = AddonManager.get().getAddon(YoutubeAddon.class);
 		if (addon == null) return;
@@ -77,8 +79,69 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 			YoutubeChromeClient chromeClient = new YoutubeChromeClient(webView, videoView);
 			webView.init(addon, webClient, chromeClient);
 			registerListeners(a);
+			
+			// Load URL
 			webView.loadUrl(DEFAULT_URL);
 			if (!DEFAULT_URL.equals(url)) a.post(() -> webView.loadUrl(url));
+			
+			// Restore Position (Giữ nguyên logic này vì nó xử lý Seek)
+			a.postDelayed(() -> {
+				PreferenceStore ps = addon.getPreferenceStore();
+				long pos = ps.getLongPref(RESUME_POS);
+				ps.removePref(RESUME_POS);
+				MediaSessionCallback cb = a.getMediaSessionCallback();
+				if (cb.getEngine() instanceof YoutubeMediaEngine) {
+					if (pos > 0L) cb.onSeekTo(pos);
+					if (pause) cb.onPause();
+				}
+			}, 3000L);
+		});
+	}*/
+	@Override
+	public void onViewCreated(@NonNull View view, @Nullable Bundle state) {
+		YoutubeAddon addon = AddonManager.get().getAddon(YoutubeAddon.class);
+		if (addon == null) return;
+
+		String url;
+		boolean pause;
+
+		if (state != null) {
+			url = state.getString("url", DEFAULT_URL);
+			pause = state.getBoolean("pause", false);
+		} else {
+			url = DEFAULT_URL;
+			pause = false;
+		}
+
+		MainActivityDelegate.getActivityDelegate(view.getContext()).onSuccess(a -> {
+			YoutubeWebView webView = a.findViewById(R.id.ytWebView);
+			VideoView videoView = a.findViewById(R.id.ytVideoView);
+
+			// --- [BẮT ĐẦU SỬA ĐỔI] ---
+			// Thay vì khởi tạo YoutubeWebClient thường, ta Override lại để bắt sự kiện đổi URL
+			YoutubeWebClient webClient = new YoutubeWebClient() {
+				@Override
+				public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+					super.doUpdateVisitedHistory(view, url, isReload);
+					
+					// Khi URL thay đổi (do nhấn vào video mới trong WebView)
+					// Gọi requestFullScreen để hủy timer cũ và bắt đầu đếm ngược 8 giây mới
+					if (view instanceof YoutubeWebView) {
+						((YoutubeWebView) view).requestFullScreen();
+					}
+				}
+			};
+			// --- [KẾT THÚC SỬA ĐỔI] ---
+
+			YoutubeChromeClient chromeClient = new YoutubeChromeClient(webView, videoView);
+			webView.init(addon, webClient, chromeClient);
+			registerListeners(a);
+			
+			// Load URL
+			webView.loadUrl(DEFAULT_URL);
+			if (!DEFAULT_URL.equals(url)) a.post(() -> webView.loadUrl(url));
+			
+			// Restore Position (Giữ nguyên logic này vì nó xử lý Seek)
 			a.postDelayed(() -> {
 				PreferenceStore ps = addon.getPreferenceStore();
 				long pos = ps.getLongPref(RESUME_POS);
@@ -133,14 +196,19 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 
 	@Override
 	public void onPause() {
+		// [OPTIMIZED] Đơn giản hóa, để YoutubeWebView tự xử lý
+		YoutubeWebView webView = (YoutubeWebView) getWebView();
+		if (webView != null) {
+			webView.onPause(); 
+			// Không cần gọi pauseTimers() thủ công ở đây nếu YoutubeWebView đã xử lý trong onPause của nó
+		}
+		
+		// Logic dừng media service khi không phải Auto (giữ nguyên để tiết kiệm pin trên điện thoại)
 		if (!BuildConfig.AUTO) {
 			MainActivityDelegate.getActivityDelegate(getContext()).onSuccess(a -> {
 				FermataServiceUiBinder b = a.getMediaServiceBinder();
 				if (YoutubeMediaEngine.isYoutubeItem(b.getCurrentItem()) && b.isPlaying()) {
 					b.getMediaSessionCallback().onPause();
-					playOnResume = true;
-				} else {
-					playOnResume = false;
 				}
 			});
 		}
@@ -150,14 +218,15 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 	@Override
 	public void onResume() {
 		super.onResume();
-		if (BuildConfig.AUTO || !playOnResume) return;
-		playOnResume = false;
-		MainActivityDelegate.getActivityDelegate(getContext()).onSuccess(a -> {
-			FermataServiceUiBinder b = a.getMediaServiceBinder();
-			if (YoutubeMediaEngine.isYoutubeItem(b.getCurrentItem())) {
-				b.getMediaSessionCallback().onPlay();
-			}
-		});
+		final YoutubeWebView webView = (YoutubeWebView) getWebView();
+		if (webView != null) {
+			// [QUAN TRỌNG] Chỉ gọi onResume() của WebView
+			// Hàm này sẽ kích hoạt requestFullScreen() và JS Polling trong YoutubeWebView
+			webView.onResume(); 
+			
+			// Không cần setLayerType hay play() thủ công nữa
+			// YoutubeWebView.requestFullScreen() đã lo việc đợi 10s và ép play.
+		}
 	}
 
 	public void loadUrl(String url) {
@@ -169,16 +238,15 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 	public void onPlayableChanged(MediaLib.PlayableItem oldItem, MediaLib.PlayableItem newItem) {
 		if (isHidden()) return;
 
+		// [FIX XUNG ĐỘT QUAN TRỌNG NHẤT]
+		// Khi chuyển bài (newItem là Youtube), ta TUYỆT ĐỐI KHÔNG gọi chrome.enterFullScreen() ở đây.
+		// Lý do: Video chưa load DOM xong, gọi ở đây sẽ gây màn hình đen hoặc lỗi JS.
+		// Hãy để JS bên trong YoutubeWebView tự phát hiện video playing và full sau.
+
 		if (YoutubeMediaEngine.isYoutubeItem(newItem)) {
-			FermataWebView v = getWebView();
-			MainActivityDelegate a = MainActivityDelegate.get(getContext());
-			if (v == null) return;
-
-			FermataChromeClient chrome = v.getWebChromeClient();
-			if (chrome == null) return;
-
-			if (!DEFAULT_URLS.contains(getUrl())) chrome.enterFullScreen();
+			// KHÔNG LÀM GÌ CẢ. YoutubeWebView tự lo.
 		} else if (YoutubeMediaEngine.isYoutubeItem(oldItem)) {
+			// Nếu chuyển từ Youtube sang cái khác (vd: Local file), thì mới cần thoát Fullscreen
 			FermataWebView v = getWebView();
 			if (v == null) return;
 			FermataChromeClient chrome = v.getWebChromeClient();

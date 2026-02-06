@@ -109,7 +109,7 @@ struct SampleBuffer {
 		}
 
 		SampleBuffer<S> buf(env, src);
-		size_t frameWidth = std::max(static_cast<size_t>(1), channels * frameRate / WHISPER_SAMPLE_RATE);
+		size_t frameWidth = std::max<size_t>((size_t)1, (size_t)(channels * frameRate / WHISPER_SAMPLE_RATE));
 		std::function<float(size_t)> convertFn = [&buf, &idxFn, frameWidth](size_t idx) {
 			auto frameIdx = idxFn(idx);
 			float sum = 0.0f;
@@ -198,11 +198,9 @@ struct FrameBuffer {
 
 extern "C" JNIEXPORT jlong JNICALL
 Java_me_aap_fermata_whisper_Whisper_create(JNIEnv *env, jclass, jstring jModelPath,
-																					 jstring jvadPath, jstring jlang,
-																					 jboolean useGpu, jboolean singleSegment) {
+																					 jstring jvadPath, jstring jlang, jboolean translate) {
 	const char *modelPath = env->GetStringUTFChars(jModelPath, nullptr);
 	whisper_context_params params = whisper_context_default_params();
-	params.use_gpu = useGpu;
 	params.flash_attn = false;
 	struct whisper_context *ctx = whisper_init_from_file_with_params(modelPath, params);
 	env->ReleaseStringUTFChars(jModelPath, modelPath);
@@ -221,7 +219,7 @@ Java_me_aap_fermata_whisper_Whisper_create(JNIEnv *env, jclass, jstring jModelPa
 				env->ReleaseStringUTFChars(js, chars);
 			}
 		}
-		return reinterpret_cast<jlong>(new WhisperSession(ctx, vadPath, lang, singleSegment));
+		return reinterpret_cast<jlong>(new WhisperSession(ctx, vadPath, lang, translate));
 	} catch (const std::bad_alloc &) {
 		whisper_free(ctx);
 		env->ThrowNew(env->FindClass("java/lang/OutOfMemoryError"),

@@ -189,7 +189,8 @@ public class MainActivityDelegate extends ActivityDelegate
 
 	public static void attachBaseContext(Context ctx) {
 		MainActivityPrefs prefs = Prefs.instance;
-		if (!prefs.hasPref(LOCALE)) return;
+		if (!prefs.hasPref(LOCALE))
+			return;
 
 		Resources res = ctx.getResources();
 		Configuration cfg = res.getConfiguration();
@@ -206,7 +207,8 @@ public class MainActivityDelegate extends ActivityDelegate
 
 	@Nullable
 	public static String intentUriToId(Uri u) {
-		if ((u == null) || !INTENT_SCHEME.equals(u.getScheme())) return null;
+		if ((u == null) || !INTENT_SCHEME.equals(u.getScheme()))
+			return null;
 		String id = u.getPath();
 		return (id == null) ? null : new String(Base64.decode(id.substring(1), URL_SAFE), US_ASCII);
 	}
@@ -243,7 +245,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		b.getMediaSessionCallback().getSession().setSessionActivity(
 				PendingIntent.getActivity(ctx, 0, new Intent(ctx, a.getClass()), FLAG_IMMUTABLE));
 		b.getMediaSessionCallback().addAssistant(this, isCarActivityNotMirror() ? 0 : 1);
-		if (b.getCurrentItem() == null) b.getMediaSessionCallback().onPrepare();
+		if (b.getCurrentItem() == null)
+			b.getMediaSessionCallback().onPrepare();
 		init();
 
 		for (FermataAddon addon : AddonManager.get().getAddons()) {
@@ -254,7 +257,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		String[] perms = getRequiredPermissions();
 		a.checkPermissions(perms).onCompletion((result, fail) -> {
 			if (fail != null) {
-				if (!isCarActivityNotMirror()) Log.e(fail);
+				if (!isCarActivityNotMirror())
+					Log.e(fail);
 			} else {
 				Log.d("Requested permissions: ", Arrays.toString(perms),
 						". Result: " + Arrays.toString(result));
@@ -268,8 +272,10 @@ public class MainActivityDelegate extends ActivityDelegate
 
 			if ((intent != null) && !Intent.ACTION_MAIN.equals(intent.getAction())) {
 				handleIntent(intent).onCompletion((r, err) -> {
-					if (err != null) Log.e(err, "Failed to handle intent ", intent);
-					if ((r == null) || !r) defaultIntent();
+					if (err != null)
+						Log.e(err, "Failed to handle intent ", intent);
+					if ((r == null) || !r)
+						defaultIntent();
 				});
 			} else {
 				defaultIntent();
@@ -290,7 +296,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 
 		for (FermataAddon a : AddonManager.get().getAddons()) {
-			if (a.handleIntent(this, intent)) return completed(true);
+			if (a.handleIntent(this, intent))
+				return completed(true);
 		}
 
 		Uri u = intent.getData();
@@ -298,9 +305,11 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (u != null) {
 			if (INTENT_SCHEME.equals(u.getScheme())) {
 				String action = u.getHost();
-				if (action == null) return completed(false);
+				if (action == null)
+					return completed(false);
 				String id = u.getPath();
-				if (id == null) return completed(false);
+				if (id == null)
+					return completed(false);
 				id = new String(Base64.decode(id.substring(1), URL_SAFE), US_ASCII);
 
 				if (INTENT_ACTION_OPEN.equals(action)) {
@@ -308,7 +317,8 @@ public class MainActivityDelegate extends ActivityDelegate
 					return completed(true);
 				} else if (INTENT_ACTION_PLAY.equals(action)) {
 					goToItem(id).map(i -> {
-						if (!(i instanceof PlayableItem)) return false;
+						if (!(i instanceof PlayableItem))
+							return false;
 						getMediaServiceBinder().playItem((PlayableItem) i);
 						return true;
 					});
@@ -320,7 +330,8 @@ public class MainActivityDelegate extends ActivityDelegate
 				post(() -> {
 					if (!(getActiveFragment() instanceof MediaLibFragment))
 						goToCurrent().onSuccess(v -> getMediaServiceBinder().playItem(i));
-					else getMediaServiceBinder().playItem(i);
+					else
+						getMediaServiceBinder().playItem(i);
 				});
 			}
 		}
@@ -349,7 +360,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			if ((fail1 != null) && !isCancellation(fail1)) {
 				Log.e(fail1, "Last played track not found");
 			}
-			if ((ok == null) || !ok) showFragment(R.id.folders_fragment);
+			if ((ok == null) || !ok)
+				showFragment(R.id.folders_fragment);
 			checkUpdates();
 		});
 
@@ -360,15 +372,19 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	private void checkUpdates() {
-		if (!AUTO) return;
-		if (getAppActivity() instanceof MainActivity a) a.uninstallControl().thenRun(() -> {
-			if (getPrefs().getCheckUpdatesPref()) a.checkUpdates();
-		});
+		if (!AUTO)
+			return;
+		if (getAppActivity() instanceof MainActivity a)
+			a.uninstallControl().thenRun(() -> {
+				if (getPrefs().getCheckUpdatesPref())
+					a.checkUpdates();
+			});
 	}
 
 	@Override
 	protected void setUncaughtExceptionHandler() {
-		if (!AUTO || getAppActivity().isCarActivity()) return;
+		if (!AUTO || getAppActivity().isCarActivity())
+			return;
 		super.setUncaughtExceptionHandler();
 	}
 
@@ -382,8 +398,10 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	public void recreate() {
-		if (AUTO && isCarActivityNotMirror()) showAlert(getContext(), R.string.please_restart_app);
-		else getHandler().post(super::recreate);
+		if (AUTO && isCarActivityNotMirror())
+			showAlert(getContext(), R.string.please_restart_app);
+		else
+			getHandler().post(super::recreate);
 	}
 
 	@Override
@@ -411,7 +429,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		handler.close();
 		getMediaServiceBinder().getMediaSessionCallback().removeAssistant(this);
 		getPrefs().removeBroadcastListener(this);
-		if (speechListener != null) speechListener.destroy();
+		if (speechListener != null)
+			speechListener.destroy();
 
 		for (FermataAddon addon : AddonManager.get().getAddons()) {
 			if (addon instanceof FermataActivityAddon)
@@ -422,15 +441,21 @@ public class MainActivityDelegate extends ActivityDelegate
 			boolean leaks = ListenerLeakDetector.hasLeaks((b, l) -> {
 				if (l instanceof ExportedItem.ListenerWrapper)
 					l = ((ExportedItem.ListenerWrapper) l).getListener();
-				if (l instanceof Key.PrefsListener) return false;
-				if (l instanceof FermataAddon) return false;
-				if (l instanceof AtvInterface) return false;
-				if ((l instanceof DefaultMediaLib) && (b instanceof DefaultMediaLib)) return false;
-				if ((l instanceof MediaEngineManager) && (b instanceof DefaultMediaLib)) return false;
+				if (l instanceof Key.PrefsListener)
+					return false;
+				if (l instanceof FermataAddon)
+					return false;
+				if (l instanceof AtvInterface)
+					return false;
+				if ((l instanceof DefaultMediaLib) && (b instanceof DefaultMediaLib))
+					return false;
+				if ((l instanceof MediaEngineManager) && (b instanceof DefaultMediaLib))
+					return false;
 				return (!(l instanceof AddonManager)) ||
 						(b != FermataApplication.get().getPreferenceStore());
 			});
-			if (leaks) Log.e(new IllegalStateException("Listener leaks detected!"));
+			if (leaks)
+				Log.e(new IllegalStateException("Listener leaks detected!"));
 		}
 	}
 
@@ -463,13 +488,15 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	public static void setTheme(Context ctx, boolean auto) {
-		@StyleRes int theme = switch (Prefs.instance.getThemePref(auto)) {
+		@StyleRes
+		int theme = switch (Prefs.instance.getThemePref(auto)) {
 			case MainActivityPrefs.THEME_LIGHT -> R.style.AppTheme_Light;
 			case MainActivityPrefs.THEME_SYSTEM -> {
-				if ((ctx.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) ==
-						Configuration.UI_MODE_NIGHT_YES)
+				if ((ctx.getResources().getConfiguration().uiMode
+						& Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES)
 					yield R.style.AppTheme_Dark;
-				else yield R.style.AppTheme_Light;
+				else
+					yield R.style.AppTheme_Light;
 			}
 			case MainActivityPrefs.THEME_BLACK -> R.style.AppTheme_Black;
 			case MainActivityPrefs.THEME_STAR_WARS -> R.style.AppTheme_BlackStarWars;
@@ -566,7 +593,6 @@ public class MainActivityDelegate extends ActivityDelegate
 		return navBarMediator;
 	}
 
-
 	public ControlPanelView getControlPanel() {
 		return controlPanel;
 	}
@@ -589,13 +615,15 @@ public class MainActivityDelegate extends ActivityDelegate
 			this.barsHidden = barsHidden;
 			int visibility = barsHidden ? GONE : VISIBLE;
 			ToolBarView tb = getToolBar();
-			if (tb.getMediator() != ToolBarView.Mediator.Invisible.instance) tb.setVisibility(visibility);
+			if (tb.getMediator() != ToolBarView.Mediator.Invisible.instance)
+				tb.setVisibility(visibility);
 			getNavBar().setVisibility(visibility);
 		});
 	}
 
 	public void setVideoMode(boolean videoMode, @Nullable VideoView v) {
-		if (videoMode == this.videoMode) return;
+		if (videoMode == this.videoMode)
+			return;
 		ControlPanelView cp = getControlPanel();
 
 		if (videoMode) {
@@ -603,11 +631,14 @@ public class MainActivityDelegate extends ActivityDelegate
 			setSystemUiVisibility();
 			keepScreenOn(true);
 			cp.enableVideoMode(v);
+			// [FIX] Trigger AA Focus when entering Video Mode
+			getMediaServiceBinder().getMediaSessionCallback().forceVideoFocus();
 		} else {
 			this.videoMode = false;
 			setSystemUiVisibility();
 			keepScreenOn(false);
-			if (cp != null) cp.disableVideoMode();
+			if (cp != null)
+				cp.disableVideoMode();
 		}
 
 		if (!checkMirroringMode(false)) {
@@ -634,25 +665,27 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	private boolean checkMirroringMode(boolean clearFlags) {
-		if (!AUTO) return false;
-		var screenOnFlags =
-				FLAG_KEEP_SCREEN_ON | FLAG_TURN_SCREEN_ON | FLAG_DISMISS_KEYGUARD | FLAG_SHOW_WHEN_LOCKED;
+		if (!AUTO)
+			return false;
+		var screenOnFlags = FLAG_KEEP_SCREEN_ON | FLAG_TURN_SCREEN_ON | FLAG_DISMISS_KEYGUARD | FLAG_SHOW_WHEN_LOCKED;
 		var app = FermataApplication.get();
 		if (!app.isMirroringMode()) {
-			if (clearFlags) getWindow().clearFlags(screenOnFlags);
+			if (clearFlags)
+				getWindow().clearFlags(screenOnFlags);
 			return false;
 		}
 		setFullScreen(true);
 		getWindow().addFlags(screenOnFlags);
 		getAppActivity().setRequestedOrientation(
-				app.isMirroringLandscape() ? SCREEN_ORIENTATION_SENSOR_LANDSCAPE :
-						SCREEN_ORIENTATION_SENSOR_PORTRAIT);
+				app.isMirroringLandscape() ? SCREEN_ORIENTATION_SENSOR_LANDSCAPE : SCREEN_ORIENTATION_SENSOR_PORTRAIT);
 		return true;
 	}
 
 	public void keepScreenOn(boolean on) {
-		if (on) getWindow().addFlags(FLAG_KEEP_SCREEN_ON);
-		else getWindow().clearFlags(FLAG_KEEP_SCREEN_ON);
+		if (on)
+			getWindow().addFlags(FLAG_KEEP_SCREEN_ON);
+		else
+			getWindow().clearFlags(FLAG_KEEP_SCREEN_ON);
 	}
 
 	public int getBrightness() {
@@ -678,12 +711,14 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 
 		progressBar.hide();
-		if (contentLoading.isDone()) return;
+		if (contentLoading.isDone())
+			return;
 		progressBar.show();
 
 		var cl = this.contentLoading = contentLoading.main();
 		cl.onCompletion((r, f) -> {
-			if ((f != null) && !isCancellation(f)) Log.d(f);
+			if ((f != null) && !isCancellation(f))
+				Log.d(f);
 			if (this.contentLoading == cl) {
 				this.contentLoading = null;
 				progressBar.hide();
@@ -705,7 +740,8 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Override
 	public ActivityFragment showFragment(int id, Object input) {
 		BodyLayout b = getBody();
-		if (b.isVideoMode()) b.setMode(BodyLayout.Mode.BOTH);
+		if (b.isVideoMode())
+			b.setMode(BodyLayout.Mode.BOTH);
 		return super.showFragment(id, input);
 	}
 
@@ -742,8 +778,10 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Nullable
 	public MediaLibFragment getMediaLibFragment(int id) {
 		for (Fragment f : getSupportFragmentManager().getFragments()) {
-			if (!(f instanceof MediaLibFragment m)) continue;
-			if (m.getFragmentId() == id) return m;
+			if (!(f instanceof MediaLibFragment m))
+				continue;
+			if (m.getFragmentId() == id)
+				return m;
 		}
 
 		return null;
@@ -756,8 +794,8 @@ public class MainActivityDelegate extends ActivityDelegate
 
 	public FutureSupplier<Boolean> goToCurrent() {
 		PlayableItem pi = getMediaServiceBinder().getCurrentItem();
-		return ((pi == null) || (pi.isExternal())) ?
-				getLib().getLastPlayedItem().main().map(this::goToItem) : completed(goToItem(pi));
+		return ((pi == null) || (pi.isExternal())) ? getLib().getLastPlayedItem().main().map(this::goToItem)
+				: completed(goToItem(pi));
 	}
 
 	public FutureSupplier<Item> goToItem(String id) {
@@ -765,7 +803,8 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	public boolean goToItem(Item i) {
-		if (i == null) return false;
+		if (i == null)
+			return false;
 		BrowsableItem root = i.getRoot();
 
 		if (root instanceof MediaLib.Folders) {
@@ -791,9 +830,12 @@ public class MainActivityDelegate extends ActivityDelegate
 
 		FermataApplication.get().getHandler().post(() -> {
 			ActivityFragment f = getActiveFragment();
-			if (!(f instanceof MediaLibFragment)) return;
-			if (i instanceof PlayableItem) ((MediaLibFragment) f).revealItem(i);
-			else if (i instanceof BrowsableItem) ((MediaLibFragment) f).openItem((BrowsableItem) i);
+			if (!(f instanceof MediaLibFragment))
+				return;
+			if (i instanceof PlayableItem)
+				((MediaLibFragment) f).revealItem(i);
+			else if (i instanceof BrowsableItem)
+				((MediaLibFragment) f).openItem((BrowsableItem) i);
 		});
 
 		return true;
@@ -832,7 +874,8 @@ public class MainActivityDelegate extends ActivityDelegate
 				getAppActivity().setTextInput(q.get(0));
 			} else {
 				VoiceCommandHandler h = voiceCommandHandler;
-				if (h == null) h = voiceCommandHandler = new VoiceCommandHandler(this);
+				if (h == null)
+					h = voiceCommandHandler = new VoiceCommandHandler(this);
 				h.handle(q);
 			}
 		});
@@ -843,17 +886,19 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	public FutureSupplier<List<String>> startSpeechRecognizer(String locale, boolean textInput) {
-		FutureSupplier<int[]> check =
-				isCarActivityNotMirror() ? completed(new int[]{PERMISSION_GRANTED}) :
-						getAppActivity().checkPermissions(Manifest.permission.RECORD_AUDIO);
+		FutureSupplier<int[]> check = isCarActivityNotMirror() ? completed(new int[] { PERMISSION_GRANTED })
+				: getAppActivity().checkPermissions(Manifest.permission.RECORD_AUDIO);
 		return check.then(r -> {
-			if (r[0] == PERMISSION_GRANTED) return completedVoid();
-			else return failed(new IllegalStateException("Audio recording permission is not granted"));
+			if (r[0] == PERMISSION_GRANTED)
+				return completedVoid();
+			else
+				return failed(new IllegalStateException("Audio recording permission is not granted"));
 		}).onFailure(err -> {
 			Log.e(err, "Failed to request RECORD_AUDIO permission");
 			showAlert(getContext(), R.string.err_no_audio_record_perm);
 		}).then(v -> {
-			if (speechListener != null) speechListener.destroy();
+			if (speechListener != null)
+				speechListener.destroy();
 			Promise<List<String>> p = new Promise<>();
 			String lang = (locale == null) ? getPrefs().getVoiceControlLang(this) : locale;
 			Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
@@ -870,20 +915,22 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Override
 	public FutureSupplier<PlayableItem> getPrevPlayable(Item i) {
 		MediaLibFragment f = getActiveMediaLibFragment();
-		if (f == null) return MediaSessionCallbackAssistant.super.getPrevPlayable(i);
+		if (f == null)
+			return MediaSessionCallbackAssistant.super.getPrevPlayable(i);
 		BrowsableItem p = f.getAdapter().getParent();
-		return (p instanceof SearchFolder) ? ((SearchFolder) p).getPrevPlayable(i) :
-				MediaSessionCallbackAssistant.super.getPrevPlayable(i);
+		return (p instanceof SearchFolder) ? ((SearchFolder) p).getPrevPlayable(i)
+				: MediaSessionCallbackAssistant.super.getPrevPlayable(i);
 	}
 
 	@NonNull
 	@Override
 	public FutureSupplier<PlayableItem> getNextPlayable(Item i) {
 		MediaLibFragment f = getActiveMediaLibFragment();
-		if (f == null) return MediaSessionCallbackAssistant.super.getNextPlayable(i);
+		if (f == null)
+			return MediaSessionCallbackAssistant.super.getNextPlayable(i);
 		BrowsableItem p = f.getAdapter().getParent();
-		return (p instanceof SearchFolder) ? ((SearchFolder) p).getNextPlayable(i) :
-				MediaSessionCallbackAssistant.super.getNextPlayable(i);
+		return (p instanceof SearchFolder) ? ((SearchFolder) p).getNextPlayable(i)
+				: MediaSessionCallbackAssistant.super.getNextPlayable(i);
 	}
 
 	@Override
@@ -904,20 +951,20 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	public void addPlaylistMenu(OverlayMenu.Builder builder,
-															FutureSupplier<List<PlayableItem>> selection) {
+			FutureSupplier<List<PlayableItem>> selection) {
 		addPlaylistMenu(builder, () -> selection, () -> "");
 	}
 
 	public void addPlaylistMenu(OverlayMenu.Builder builder,
-															Supplier<FutureSupplier<List<PlayableItem>>> selection,
-															Supplier<? extends CharSequence> initName) {
+			Supplier<FutureSupplier<List<PlayableItem>>> selection,
+			Supplier<? extends CharSequence> initName) {
 		builder.addItem(R.id.playlist_add, R.drawable.playlist_add, R.string.playlist_add)
 				.setSubmenu(b -> createPlaylistMenu(b, selection, initName));
 	}
 
 	private void createPlaylistMenu(OverlayMenu.Builder b,
-																	Supplier<FutureSupplier<List<PlayableItem>>> selection,
-																	Supplier<? extends CharSequence> initName) {
+			Supplier<FutureSupplier<List<PlayableItem>>> selection,
+			Supplier<? extends CharSequence> initName) {
 		getLib().getPlaylists().getUnsortedChildren().main().onSuccess(playlists -> {
 			b.addItem(R.id.playlist_create, R.drawable.playlist_add, R.string.playlist_create)
 					.setHandler(i -> createPlaylist(selection.get(), initName));
@@ -932,18 +979,20 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	private boolean createPlaylist(FutureSupplier<List<PlayableItem>> selection,
-																 Supplier<? extends CharSequence> initName) {
+			Supplier<? extends CharSequence> initName) {
 		UiUtils.queryText(getContext(), R.string.playlist_name, R.drawable.playlist, initName.get())
 				.onSuccess(name -> {
 					discardSelection();
-					if (name == null) return;
+					if (name == null)
+						return;
 
 					getLib().getPlaylists().addItem(name)
 							.onFailure(err -> showAlert(getContext(), err.getMessage())).then(
 									pl -> selection.main().then(items -> pl.addItems(items)
 											.onFailure(err -> showAlert(getContext(), err.getMessage())).thenRun(() -> {
 												MediaLibFragment f = getMediaLibFragment(R.id.playlists_fragment);
-												if (f != null) f.getAdapter().reload();
+												if (f != null)
+													f.getAdapter().reload();
 											})));
 				});
 		return true;
@@ -959,7 +1008,8 @@ public class MainActivityDelegate extends ActivityDelegate
 					selection.main().onSuccess(items -> {
 						pl.addItems(items);
 						MediaLibFragment f = getMediaLibFragment(R.id.playlists_fragment);
-						if (f != null) f.getAdapter().reload();
+						if (f != null)
+							f.getAdapter().reload();
 					});
 					break;
 				}
@@ -973,13 +1023,15 @@ public class MainActivityDelegate extends ActivityDelegate
 		pl.removeItems(selection).onFailure(err -> showAlert(getContext(), err.getMessage()))
 				.thenRun(() -> {
 					MediaLibFragment f = getMediaLibFragment(R.id.playlists_fragment);
-					if (f != null) f.getAdapter().reload();
+					if (f != null)
+						f.getAdapter().reload();
 				});
 	}
 
 	private void discardSelection() {
 		ActivityFragment f = getActiveFragment();
-		if (f instanceof MainActivityFragment) ((MainActivityFragment) f).discardSelection();
+		if (f instanceof MainActivityFragment)
+			((MainActivityFragment) f).discardSelection();
 	}
 
 	@Override
@@ -1002,8 +1054,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (VERSION.SDK_INT >= VERSION_CODES.VANILLA_ICE_CREAM && !a.isCarActivity()) {
 			ViewCompat.setOnApplyWindowInsetsListener(toolBar, (v, insets) -> {
 				var bars = insets.getInsets(
-						WindowInsetsCompat.Type.systemBars()
-				);
+						WindowInsetsCompat.Type.systemBars());
 				a.findViewById(R.id.main_activity).setPadding(bars.left, bars.top, bars.right,
 						bars.bottom);
 				return WindowInsetsCompat.CONSUMED;
@@ -1048,11 +1099,14 @@ public class MainActivityDelegate extends ActivityDelegate
 		} else if (MainActivityPrefs.hasNavBarPosPref(this, prefs)) {
 			recreate();
 		} else if (MainActivityPrefs.hasTextIconSizePref(this, prefs)) {
-			if (floatingButton != null) floatingButton.setScale(getPrefs().getTextIconSizePref(this));
+			if (floatingButton != null)
+				floatingButton.setScale(getPrefs().getTextIconSizePref(this));
 		} else if (MainActivityPrefs.hasNavBarSizePref(this, prefs)) {
-			if (navBar != null) navBar.setSize(getPrefs().getNavBarSizePref(this));
+			if (navBar != null)
+				navBar.setSize(getPrefs().getNavBarSizePref(this));
 		} else if (MainActivityPrefs.hasToolBarSizePref(this, prefs)) {
-			if (toolBar != null) toolBar.setSize(getPrefs().getToolBarSizePref(this));
+			if (toolBar != null)
+				toolBar.setSize(getPrefs().getToolBarSizePref(this));
 		} else if (MainActivityPrefs.hasFullscreenPref(this, prefs)) {
 			setSystemUiVisibility();
 		} else if (prefs.contains(CHANGE_BRIGHTNESS)) {
@@ -1064,20 +1118,24 @@ public class MainActivityDelegate extends ActivityDelegate
 				}
 			}
 		} else if (prefs.contains(BRIGHTNESS)) {
-			if (isVideoMode()) setBrightness(getPrefs().getBrightnessPref());
+			if (isVideoMode())
+				setBrightness(getPrefs().getBrightnessPref());
 		} else if (prefs.contains(VOICE_CONTROl_ENABLED)) {
 			if (!getPrefs().getVoiceControlEnabledPref()) {
 				getPrefs().applyBooleanPref(VOICE_CONTROl_FB, false);
 				return;
 			}
 			getAppActivity().checkPermissions(permission.RECORD_AUDIO).onCompletion((r, err) -> {
-				if ((err == null) && (r[0] == PERMISSION_GRANTED)) return;
-				if (err != null) Log.e(err, "Failed to request RECORD_AUDIO permission");
+				if ((err == null) && (r[0] == PERMISSION_GRANTED))
+					return;
+				if (err != null)
+					Log.e(err, "Failed to request RECORD_AUDIO permission");
 				showAlert(getContext(), R.string.err_no_audio_record_perm);
 				getPrefs().applyBooleanPref(VOICE_CONTROl_FB, false);
 			});
 		} else if (prefs.contains(VOICE_CONTROL_SUBST)) {
-			if (voiceCommandHandler != null) voiceCommandHandler.updateWordSubst();
+			if (voiceCommandHandler != null)
+				voiceCommandHandler.updateWordSubst();
 		} else if (prefs.contains(CLOCK_POS)) {
 			getBody().getVideoView().setClockPos(getPrefs().getClockPosPref());
 		} else if (prefs.contains(LOCALE)) {
@@ -1097,7 +1155,7 @@ public class MainActivityDelegate extends ActivityDelegate
 
 	@Override
 	public boolean onKeyLongPress(int code, KeyEvent event,
-																IntObjectFunction<KeyEvent, Boolean> next) {
+			IntObjectFunction<KeyEvent, Boolean> next) {
 		return handleKeyEvent(this, event, next);
 	}
 
@@ -1115,7 +1173,8 @@ public class MainActivityDelegate extends ActivityDelegate
 
 	public Cancellable interruptPlayback() {
 		MediaSessionCallback cb = getMediaSessionCallback();
-		if (!cb.isPlaying()) return Cancellable.CANCELED;
+		if (!cb.isPlaying())
+			return Cancellable.CANCELED;
 		PlaybackStateCompat playbackState = cb.getPlaybackState();
 		cb.onPause();
 		return () -> {
@@ -1157,12 +1216,14 @@ public class MainActivityDelegate extends ActivityDelegate
 				try (PreferenceStore.Edit e = editPreferenceStore()) {
 					if (theme != THEME_DARK) {
 						e.setIntPref(THEME_MAIN, theme);
-						if (AUTO) e.setIntPref(THEME_AA, theme);
+						if (AUTO)
+							e.setIntPref(THEME_AA, theme);
 						e.removePref(oldTheme);
 					}
 					if (scale != 1f) {
 						e.setFloatPref(TEXT_ICON_SIZE, scale);
-						if (AUTO) e.setFloatPref(TEXT_ICON_SIZE_AA, scale);
+						if (AUTO)
+							e.setFloatPref(TEXT_ICON_SIZE_AA, scale);
 						e.removePref(oldScale);
 					}
 				}
@@ -1245,7 +1306,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			playbackState = null;
 			recognizer.destroy();
 			promise.cancel();
-			if (speechListener == this) speechListener = null;
+			if (speechListener == this)
+				speechListener = null;
 		}
 
 		@Override
@@ -1258,7 +1320,7 @@ public class MainActivityDelegate extends ActivityDelegate
 				layout.setOrientation(LinearLayoutCompat.VERTICAL);
 				AppCompatImageView img = new AppCompatImageView(ctx);
 				TypedArray ta = ctx.getTheme()
-						.obtainStyledAttributes(new int[]{com.google.android.material.R.attr.colorOnSecondary});
+						.obtainStyledAttributes(new int[] { com.google.android.material.R.attr.colorOnSecondary });
 				int imgColor = ta.getColor(0, 0);
 				ta.recycle();
 				img.setMinimumWidth(size);
@@ -1268,7 +1330,7 @@ public class MainActivityDelegate extends ActivityDelegate
 				text.setMaxLines(5);
 				text.setGravity(Gravity.CENTER);
 				text.setEllipsize(TextUtils.TruncateAt.MARQUEE);
-				ta = ctx.getTheme().obtainStyledAttributes(new int[]{android.R.attr.textColorSecondary});
+				ta = ctx.getTheme().obtainStyledAttributes(new int[] { android.R.attr.textColorSecondary });
 				text.setTextColor(ColorStateList.valueOf(ta.getColor(0, 0)));
 				ta.recycle();
 				text.setLayoutParams(new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
@@ -1300,7 +1362,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		@Override
 		public void onResults(Bundle b) {
 			List<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-			if ((r != null) && !r.isEmpty()) text.setText(r.get(0));
+			if ((r != null) && !r.isEmpty())
+				text.setText(r.get(0));
 			postDelayed(MainActivityDelegate.this::hideActiveMenu, 1000);
 			promise.complete(r);
 		}
@@ -1308,7 +1371,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		@Override
 		public void onPartialResults(Bundle b) {
 			List<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-			if ((r != null) && !r.isEmpty()) text.setText(r.get(0));
+			if ((r != null) && !r.isEmpty())
+				text.setText(r.get(0));
 		}
 
 		@Override

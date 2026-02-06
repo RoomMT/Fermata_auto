@@ -136,6 +136,8 @@ public class VideoView extends FrameLayout
 		VideoInfoView d = new VideoInfoView(context, null);
 		FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
 		lp.gravity = Gravity.CENTER_HORIZONTAL | Gravity.TOP;
+		int m = toIntPx(context, 10);
+		lp.setMargins(m, m, m, m);
 		d.setLayoutParams(lp);
 		addView(d);
 	}
@@ -143,9 +145,11 @@ public class VideoView extends FrameLayout
 	@Override
 	protected void onConfigurationChanged(Configuration newConfig) {
 		super.onConfigurationChanged(newConfig);
-		if (subDrawer == null) return;
+		if (subDrawer == null)
+			return;
 		var a = getActivity().peek();
-		if (a != null) a.post(this::drawSubtitles);
+		if (a != null)
+			a.post(this::drawSubtitles);
 	}
 
 	public SurfaceView getVideoSurface() {
@@ -157,14 +161,14 @@ public class VideoView extends FrameLayout
 		return (SurfaceView) getChildAt(1);
 	}
 
-
 	public void setClockPos(int pos) {
 		int idx = getChildCount() - 1;
 		int gravity = Gravity.TOP;
 
 		switch (pos) {
 			case MainActivityPrefs.CLOCK_POS_NONE -> {
-				if (getChildAt(idx) instanceof TextClock) removeViewAt(idx);
+				if (getChildAt(idx) instanceof TextClock)
+					removeViewAt(idx);
 				return;
 			}
 			case MainActivityPrefs.CLOCK_POS_LEFT -> gravity |= Gravity.START;
@@ -198,26 +202,32 @@ public class VideoView extends FrameLayout
 	public void showVideo(boolean hideTitle) {
 		createSurface.onSuccess(v -> {
 			MainActivityDelegate a = getActivity().peek();
-			if (a == null) return;
+			if (a == null)
+				return;
 			MediaSessionCallback cb = a.getMediaSessionCallback();
 			MediaEngine eng = cb.getEngine();
-			if (eng != null) setSurfaceSize(eng);
+			if (eng != null)
+				setSurfaceSize(eng);
 			VideoInfoView info = getVideoInfoView();
-			if (hideTitle && (info != null)) info.setVisibility(GONE);
+			if (hideTitle && (info != null))
+				info.setVisibility(GONE);
 		});
 	}
 
 	public void prepareSubDrawer(boolean dbl) {
 		MainActivityDelegate a = getActivity().peek();
-		if (a == null) return;
+		if (a == null)
+			return;
 		var src = a.getMediaSessionCallback().getCurrentItem();
 		var ps = (src != null) ? src.getPrefs() : a.getLib().getPrefs();
 		var scale = ps.getFloatPref(SUB_SIZE);
 		if (dbl) {
-			if (subDrawer instanceof DoubleSubDrawer && subDrawer.textScale == scale) return;
+			if (subDrawer instanceof DoubleSubDrawer && subDrawer.textScale == scale)
+				return;
 			subDrawer = new DoubleSubDrawer(scale);
 		} else {
-			if (subDrawer instanceof GridDrawer && subDrawer.textScale == scale) return;
+			if (subDrawer instanceof GridDrawer && subDrawer.textScale == scale)
+				return;
 			subDrawer = new GridDrawer(scale);
 		}
 	}
@@ -228,15 +238,18 @@ public class VideoView extends FrameLayout
 
 	@Override
 	public void accept(SubGrid.Position position, @Nullable Subtitles.Text text) {
-		if (subDrawer == null) return;
-		if (!subDrawer.setText(position, text)) return;
+		if (subDrawer == null)
+			return;
+		if (!subDrawer.setText(position, text))
+			return;
 		drawSubtitles();
 	}
 
 	public void clearVideoSurface() {
 		createSurface.onSuccess(v -> {
 			SurfaceView sv = getVideoSurface();
-			if (sv == null) return;
+			if (sv == null)
+				return;
 			var h = sv.getHolder();
 			var c = h.lockCanvas();
 			try {
@@ -257,7 +270,8 @@ public class VideoView extends FrameLayout
 	public void clearSubtitleSurface() {
 		createSurface.onSuccess(v -> {
 			SurfaceView sv = getSubtitleSurface();
-			if (sv == null) return;
+			if (sv == null)
+				return;
 			var h = sv.getHolder();
 			var c = h.lockCanvas();
 			try {
@@ -273,7 +287,8 @@ public class VideoView extends FrameLayout
 	private void drawSubtitles() {
 		createSurface.onSuccess(v -> {
 			SurfaceView sv = getSubtitleSurface();
-			if (sv == null) return;
+			if (sv == null)
+				return;
 			var h = sv.getHolder();
 			var c = h.lockCanvas();
 			var cs = c.save();
@@ -290,10 +305,12 @@ public class VideoView extends FrameLayout
 	}
 
 	public void setSurfaceSize(MediaEngine eng) {
-		if (eng.setSurfaceSize(this)) return;
+		if (eng.setSurfaceSize(this))
+			return;
 
 		PlayableItem item = eng.getSource();
-		if (item == null) return;
+		if (item == null)
+			return;
 
 		SurfaceView surface = getVideoSurface();
 		ViewGroup.LayoutParams lp = surface.getLayoutParams();
@@ -351,23 +368,28 @@ public class VideoView extends FrameLayout
 
 	@Override
 	public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft,
-														 int oldTop, int oldRight, int oldBottom) {
+			int oldTop, int oldRight, int oldBottom) {
 		FermataApplication.get().getHandler().post(() -> createSurface.onSuccess(s -> {
 			MainActivityDelegate a = getActivity().peek();
-			if (a == null) return;
+			if (a == null)
+				return;
 			MediaEngine eng = a.getMediaServiceBinder().getCurrentEngine();
-			if (eng == null) return;
+			if (eng == null)
+				return;
 
 			PlayableItem i = eng.getSource();
-			if ((i != null) && i.isVideo()) setSurfaceSize(eng);
+			if ((i != null) && i.isVideo())
+				setSurfaceSize(eng);
 		}));
 	}
 
 	@Override
 	public void surfaceCreated(@NonNull SurfaceHolder holder) {
-		if (!getVideoSurface().getHolder().getSurface().isValid()) return;
+		if (!getVideoSurface().getHolder().getSurface().isValid())
+			return;
 		SurfaceView s = getSubtitleSurface();
-		if ((s != null) && !s.getHolder().getSurface().isValid()) return;
+		if ((s != null) && !s.getHolder().getSurface().isValid())
+			return;
 		getActivity().onSuccess(
 				a -> a.getMediaSessionCallback().addVideoView(this, a.isCarActivityNotMirror() ? 0 : 1));
 		if (createSurface instanceof Promise<?> p) {
@@ -409,11 +431,13 @@ public class VideoView extends FrameLayout
 
 		switch (keyCode) {
 			case KEYCODE_ENTER, KEYCODE_DPAD_CENTER -> {
-				if ((a = getActivity().peek()) == null) break;
+				if ((a = getActivity().peek()) == null)
+					break;
 				return a.getControlPanel().onTouch(this);
 			}
 			case KEYCODE_DPAD_LEFT, KEYCODE_DPAD_RIGHT -> {
-				if ((a = getActivity().peek()) == null) break;
+				if ((a = getActivity().peek()) == null)
+					break;
 				p = a.getControlPanel();
 				if (!p.isVideoSeekMode() && !a.getBody().isVideoMode()) {
 					View v = focusSearch(this, (keyCode == KEYCODE_DPAD_LEFT) ? FOCUS_LEFT : FOCUS_RIGHT);
@@ -430,14 +454,16 @@ public class VideoView extends FrameLayout
 				return true;
 			}
 			case KEYCODE_DPAD_UP -> {
-				if ((a = getActivity().peek()) == null) break;
+				if ((a = getActivity().peek()) == null)
+					break;
 				b = a.getMediaServiceBinder();
 				b.onRwFfButtonLongClick(true);
 				a.getControlPanel().onVideoSeek();
 				return true;
 			}
 			case KEYCODE_DPAD_DOWN -> {
-				if ((a = getActivity().peek()) == null) break;
+				if ((a = getActivity().peek()) == null)
+					break;
 				p = a.getControlPanel();
 				if (!p.isVideoSeekMode() && isVisible(p)) {
 					View v = p.focusSearch();
@@ -460,7 +486,8 @@ public class VideoView extends FrameLayout
 
 	private boolean onTouch(@NonNull MotionEvent e) {
 		MainActivityDelegate a = getActivity().peek();
-		if (a == null) return false;
+		if (a == null)
+			return false;
 		a.getControlPanel().onVideoViewTouch(this, e);
 		return true;
 	}
@@ -469,11 +496,14 @@ public class VideoView extends FrameLayout
 	public void onPreferenceChanged(PreferenceStore store, List<PreferenceStore.Pref<?>> prefs) {
 		if (createSurface.isDone() && !Collections.disjoint(prefChange, prefs)) {
 			MainActivityDelegate a = getActivity().peek();
-			if (a == null) return;
+			if (a == null)
+				return;
 			MediaEngine eng = a.getMediaSessionCallback().getEngine();
-			if (eng == null) return;
+			if (eng == null)
+				return;
 			PlayableItem i = eng.getSource();
-			if ((i == null) || !i.isVideo()) return;
+			if ((i == null) || !i.isVideo())
+				return;
 
 			if (prefs.contains(MediaPrefs.VIDEO_SCALE)) {
 				setSurfaceSize(eng);
@@ -498,13 +528,15 @@ public class VideoView extends FrameLayout
 	@Override
 	public View focusSearch(View focused, int direction) {
 		MainActivityDelegate a = getActivity().peek();
-		if ((a == null) || !a.getBody().isBothMode()) return focused;
+		if ((a == null) || !a.getBody().isBothMode())
+			return focused;
 
 		if (direction == FOCUS_LEFT) {
 			return MediaItemListView.focusSearchActive(getContext(), focused);
 		} else if (direction == FOCUS_RIGHT) {
 			NavBarView n = a.getNavBar();
-			if (n.isRight()) return n.focusSearch();
+			if (n.isRight())
+				return n.focusSearch();
 		}
 
 		return focused;
@@ -548,7 +580,8 @@ public class VideoView extends FrameLayout
 
 		static CharSequence text(String text) {
 			var idx = text.indexOf('<');
-			if ((idx == -1) || (text.indexOf('>', idx) == -1)) return text;
+			if ((idx == -1) || (text.indexOf('>', idx) == -1))
+				return text;
 			return fromHtml(text, FROM_HTML_MODE_LEGACY);
 		}
 
@@ -573,14 +606,12 @@ public class VideoView extends FrameLayout
 	private static final class GridDrawer extends SubDrawer {
 		private final String[] grid = new String[9];
 		private final TextPaint[] paint = new TextPaint[3];
-		private final float[] yoff = new float[]{1f, 0.5f, 0.f};
-
+		private final float[] yoff = new float[] { 1f, 0.5f, 0.f };
 
 		private GridDrawer(float textScale) {
 			super(textScale);
 			for (int i = 0; i < 3; i++) {
-				paint[i] =
-						paint(i == 0 ? Paint.Align.LEFT : i == 1 ? Paint.Align.CENTER : Paint.Align.RIGHT);
+				paint[i] = paint(i == 0 ? Paint.Align.LEFT : i == 1 ? Paint.Align.CENTER : Paint.Align.RIGHT);
 			}
 		}
 
@@ -588,7 +619,8 @@ public class VideoView extends FrameLayout
 		public boolean setText(SubGrid.Position position, @Nullable Subtitles.Text text) {
 			var t = (text == null) ? null : text.getText();
 			int idx = position.ordinal();
-			if (Objects.equals(grid[idx], t)) return false;
+			if (Objects.equals(grid[idx], t))
+				return false;
 			grid[idx] = t;
 			return true;
 		}
@@ -598,8 +630,8 @@ public class VideoView extends FrameLayout
 			var ch = canvas.getHeight();
 			var cw = canvas.getWidth();
 			var ts = textSize(ch, cw);
-			var x = new int[]{0, cw / 2, cw};
-			var y = new int[]{ch, ch / 2, 0};
+			var x = new int[] { 0, cw / 2, cw };
+			var y = new int[] { ch, ch / 2, 0 };
 
 			for (int i = 0, g = 0; i < 3; i++, g += 3) {
 				var l = grid[g] != null;
@@ -620,8 +652,10 @@ public class VideoView extends FrameLayout
 						w[1] = cw;
 					}
 				} else if (l) {
-					if (r) w[0] = w[2] = cw / 2;
-					else w[0] = cw;
+					if (r)
+						w[0] = w[2] = cw / 2;
+					else
+						w[0] = cw;
 				} else if (r) {
 					w[2] = cw;
 				} else {
@@ -629,7 +663,8 @@ public class VideoView extends FrameLayout
 				}
 
 				for (int j = 0; j < 3; j++) {
-					if (w[j] == 0) continue;
+					if (w[j] == 0)
+						continue;
 					var t = text(grid[g + j]);
 					paint[j].setTextSize(ts);
 					var sl = layout(t, paint[j], w[j]);
@@ -657,12 +692,14 @@ public class VideoView extends FrameLayout
 		boolean setText(SubGrid.Position position, @Nullable Subtitles.Text text) {
 			if (position == SubGrid.Position.BOTTOM_LEFT) {
 				var t = (text == null) ? null : text.getText();
-				if (!center && Objects.equals(this.text, t)) return false;
+				if (!center && Objects.equals(this.text, t))
+					return false;
 				center = false;
 				this.text = t;
 			} else if (position == SubGrid.Position.BOTTOM_RIGHT) {
 				var t = (text == null) ? null : text.getText();
-				if (!center && Objects.equals(translation, t)) return false;
+				if (!center && Objects.equals(translation, t))
+					return false;
 				center = false;
 				translation = t;
 			} else {
@@ -715,7 +752,7 @@ public class VideoView extends FrameLayout
 
 			if (center) {
 				float size = (ch > cw) ? cw / 10f : ch / 5f;
-				for (; ; ) {
+				for (;;) {
 					paint.setTextSize(size);
 					var sl = layout(sub, paint, cw);
 					var sh = sl.getHeight();

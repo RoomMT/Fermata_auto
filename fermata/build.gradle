@@ -10,7 +10,8 @@ android {
 
         ndk {
             //noinspection ChromeOsAbiSupport
-            abiFilters = gradle.ext.abiFilters
+            //abiFilters = gradle.ext.abiFilters
+		abiFilters "arm64-v8a"
         }
     }
 
@@ -28,7 +29,7 @@ android {
     buildTypes {
         release {
             debuggable false
-            minifyEnabled true
+            minifyEnabled false
             resValue "string", "app_name_auto", "@string/app_name_auto_release"
             resValue "string", "app_name_mobile", "@string/app_name_mobile_release"
             resValue "string", "media_service_name_auto", "@string/media_service_name_auto_release"
@@ -105,7 +106,7 @@ dependencies {
     implementation 'com.google.android.play:app-update:2.1.0'
     implementation 'androidx.tvprovider:tvprovider:1.1.0'
     implementation 'androidx.annotation:annotation:1.9.1'
-    implementation "androidx.car.app:app:1.7.0"
+    implementation "androidx.car.app:app:1.7.0-rc01"
     implementation "androidx.legacy:legacy-support-core-utils:1.0.0"
     implementation "androidx.localbroadcastmanager:localbroadcastmanager:1.1.0"
     implementation "com.google.android.datatransport:transport-api:4.0.0"

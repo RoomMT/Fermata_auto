@@ -128,8 +128,10 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 			mediaController.getTransportControls().stop();
 		} else {
 			playPauseTime = time;
-			if (isPlaying()) getMediaSessionCallback().onPause();
-			else getMediaSessionCallback().onPlay();
+			if (isPlaying())
+				getMediaSessionCallback().onPause();
+			else
+				getMediaSessionCallback().onPlay();
 		}
 	}
 
@@ -173,8 +175,10 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 	}
 
 	public void onPrevNextButtonClick(boolean next) {
-		if (next) mediaController.getTransportControls().skipToNext();
-		else mediaController.getTransportControls().skipToPrevious();
+		if (next)
+			mediaController.getTransportControls().skipToNext();
+		else
+			mediaController.getTransportControls().skipToPrevious();
 	}
 
 	private boolean onPrevNextButtonLongClick(View v) {
@@ -191,11 +195,13 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 
 	public void onPrevNextFolderClick(boolean next) {
 		PlayableItem i = sessionCallback.getCurrentItem();
-		if (i == null) return;
+		if (i == null)
+			return;
 		MediaLib.BrowsableItem p = i.getParent();
 		FutureSupplier<PlayableItem> f = next ? p.getNextPlayable() : p.getPrevPlayable();
 		f.onSuccess(pi -> {
-			if (pi != null) sessionCallback.playItem(pi, 0);
+			if (pi != null)
+				sessionCallback.playItem(pi, 0);
 		});
 	}
 
@@ -256,7 +262,8 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 		mediaController.unregisterCallback(callback);
 		currentItem = null;
 		callback.stopProgressUpdate();
-		if (progressBar != null) progressBar.setOnSeekBarChangeListener(null);
+		if (progressBar != null)
+			progressBar.setOnSeekBarChangeListener(null);
 		unbindButtons(playPauseButton, prevButton, nextButton, rwButton, ffButton);
 		playPauseButton = prevButton = nextButton = rwButton = ffButton = null;
 		progressTime = progressTotal = null;
@@ -267,7 +274,8 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 
 	private void unbindButtons(View... buttons) {
 		for (View b : buttons) {
-			if (b == null) continue;
+			if (b == null)
+				continue;
 			b.setOnClickListener(null);
 			b.setOnLongClickListener(null);
 		}
@@ -304,7 +312,8 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 
 		@Override
 		public void onPlaybackStateChanged(PlaybackStateCompat state) {
-			if ((state == null) || !bound) return;
+			if ((state == null) || !bound)
+				return;
 
 			int st = state.getState();
 			boolean fireEvent = true;
@@ -324,8 +333,8 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 					break;
 				case PlaybackStateCompat.STATE_FAST_FORWARDING:
 				case PlaybackStateCompat.STATE_REWINDING:
-				case PlaybackStateCompat.STATE_BUFFERING: // TODO: implement
-				case PlaybackStateCompat.STATE_CONNECTING: // TODO: implement
+				case PlaybackStateCompat.STATE_BUFFERING:
+				case PlaybackStateCompat.STATE_CONNECTING:
 				case PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS:
 				case PlaybackStateCompat.STATE_SKIPPING_TO_NEXT:
 				case PlaybackStateCompat.STATE_SKIPPING_TO_QUEUE_ITEM:
@@ -350,7 +359,8 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 		}
 
 		void setProgressTime(int seconds) {
-			if (progressTime != null) progressTime.setText(timeToString(seconds));
+			if (progressTime != null)
+				progressTime.setText(timeToString(seconds));
 		}
 
 		private void startProgressUpdate() {
@@ -365,7 +375,8 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 		}
 
 		private void updateProgress(Object stamp) {
-			if (progressUpdateStamp != stamp) return;
+			if (progressUpdateStamp != stamp)
+				return;
 
 			if (!pauseProgressUpdate) {
 				MediaEngine eng = sessionCallback.getEngine();
@@ -373,7 +384,8 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 
 				if (src != null) {
 					eng.getPosition().main().onSuccess(position -> {
-						if (eng != sessionCallback.getEngine()) return;
+						if (eng != sessionCallback.getEngine())
+							return;
 
 						int pos = (int) (position / 1000);
 						if (progressBar != null) {
@@ -386,9 +398,11 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 										int max = (int) (dur / 1000);
 										long last = getLib().getLastPlayedPosition(src);
 										src.setDuration(dur);
-										if (last > 0) eng.setPosition(last);
+										if (last > 0)
+											eng.setPosition(last);
 										progressBar.setMax(max);
-										if (progressTotal != null) progressTotal.setText(timeToString(max));
+										if (progressTotal != null)
+											progressTotal.setText(timeToString(max));
 										fireBroadcastEvent(l -> l.onDurationChanged(src));
 									}
 								});
@@ -402,7 +416,8 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 									dur.onSuccess(d -> {
 										int max = (int) (d / 1000);
 										progressBar.setMax(max);
-										if (progressTotal != null) progressTotal.setText(timeToString(max));
+										if (progressTotal != null)
+											progressTotal.setText(timeToString(max));
 									});
 								}
 
@@ -414,8 +429,9 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 
 										if (start < end) {
 											int second = (int) ((System.currentTimeMillis() - start) / 1000);
-											progressBar.setSecondaryProgress((second >= progressBar.getProgress()) ?
-													second : progressBar.getMax());
+											progressBar
+													.setSecondaryProgress((second >= progressBar.getProgress()) ? second
+															: progressBar.getMax());
 											return;
 										}
 									}
@@ -485,23 +501,31 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 					progressTotal.setVisibility(VISIBLE);
 					progressTotal.setText(timeToString(dur));
 				}
-				if (rwButton != null) rwButton.setVisibility(VISIBLE);
-				if (ffButton != null) ffButton.setVisibility(VISIBLE);
+				if (rwButton != null)
+					rwButton.setVisibility(VISIBLE);
+				if (ffButton != null)
+					ffButton.setVisibility(VISIBLE);
 			} else {
 				if (progressBar != null) {
 					progressBar.setEnabled(false);
 					progressBar.setVisibility(GONE);
 				}
-				if (progressTime != null) progressTime.setVisibility(GONE);
-				if (progressTotal != null) progressTotal.setVisibility(GONE);
-				if (rwButton != null) rwButton.setVisibility(GONE);
-				if (ffButton != null) ffButton.setVisibility(GONE);
+				if (progressTime != null)
+					progressTime.setVisibility(GONE);
+				if (progressTotal != null)
+					progressTotal.setVisibility(GONE);
+				if (rwButton != null)
+					rwButton.setVisibility(GONE);
+				if (ffButton != null)
+					ffButton.setVisibility(GONE);
 			}
 
 			if (st == STATE_PLAYING) {
 				updateDuration = (dur <= 0);
-				if (canSeek) startProgressUpdate();
-				else stopProgressUpdate();
+				if (canSeek)
+					startProgressUpdate();
+				else
+					stopProgressUpdate();
 
 				if (playPauseButton != null) {
 					if (eng.canPause()) {
@@ -525,12 +549,15 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 		}
 
 		private void showPanel(boolean show) {
-			if (controlPanel != null) controlPanel.setVisibility(show ? VISIBLE : GONE);
+			if (controlPanel != null)
+				controlPanel.setVisibility(show ? VISIBLE : GONE);
 		}
 
 		private void resetProgressBar() {
-			if (progressTime != null) progressTime.setVisibility(INVISIBLE);
-			if (progressTotal != null) progressTotal.setVisibility(INVISIBLE);
+			if (progressTime != null)
+				progressTime.setVisibility(INVISIBLE);
+			if (progressTotal != null)
+				progressTotal.setVisibility(INVISIBLE);
 			if (progressBar != null) {
 				progressBar.setProgress(0);
 				progressBar.setSecondaryProgress(0);

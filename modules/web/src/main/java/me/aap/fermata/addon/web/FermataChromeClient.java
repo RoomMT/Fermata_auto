@@ -48,6 +48,7 @@ public class FermataChromeClient extends WebChromeClient {
 	private CustomViewCallback customViewCallback;
 	private Promise<Void> fullScreenReq;
 	private long touchStamp;
+	private Runnable fullScreenRunnable; // Dùng để giữ và hủy tác vụ delay
 
 	public FermataChromeClient(FermataWebView web, ViewGroup fullScreenView) {
 		this.web = web;
@@ -135,6 +136,8 @@ public class FermataChromeClient extends WebChromeClient {
 		MainActivityDelegate a = MainActivityDelegate.get(customView.getContext());
 		removeCustomView(customView);
 		getWebView().setVisibility(VISIBLE);
+		getWebView().postInvalidate();
+		getWebView().requestFocus();
 		setFullScreen(a, false);
 		customViewCallback.onCustomViewHidden();
 		customView = null;

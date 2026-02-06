@@ -29,8 +29,6 @@ import me.aap.utils.pref.PreferenceStore;
 @SuppressWarnings("unused")
 public class WhisperAddon extends SubGenAddon {
 	public static final PreferenceStore.Pref<BooleanSupplier>
-			USE_GPU = PreferenceStore.Pref.b("SG_WHISPER_USE_GPU", false);
-	public static final PreferenceStore.Pref<BooleanSupplier>
 			SINGLE_SEGMENT = PreferenceStore.Pref.b("SG_WHISPER_SINGLE_SEGMENT", false);
 	public static final PreferenceStore.Pref<Supplier<String>> MODEL =
 			PreferenceStore.Pref.s("SG_WHISPER_MODEL", "tiny-q5_1");
@@ -54,7 +52,7 @@ public class WhisperAddon extends SubGenAddon {
 
 	@Override
 	protected Object createCacheKey(PreferenceStore ps) {
-		return ps.getStringPref(MODEL) + ps.getBooleanPref(USE_GPU);
+		return ps.getStringPref(MODEL);
 	}
 
 	@Override
@@ -66,12 +64,6 @@ public class WhisperAddon extends SubGenAddon {
 			o.title = me.aap.fermata.R.string.sub_gen_model;
 			o.subtitle = me.aap.fermata.R.string.string_format;
 			o.formatSubtitle = true;
-			o.visibility = visibility.copy();
-		});
-		set.addBooleanPref(o -> {
-			o.store = ps;
-			o.pref = USE_GPU;
-			o.title = me.aap.fermata.R.string.sub_gen_use_gpu;
 			o.visibility = visibility.copy();
 		});
 		set.addBooleanPref(o -> {

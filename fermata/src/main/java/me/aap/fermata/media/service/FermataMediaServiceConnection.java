@@ -31,7 +31,7 @@ public class FermataMediaServiceConnection implements ServiceConnection {
 		int notifColor = Color.parseColor(DEFAULT_NOTIF_COLOR);
 
 		if (a != null) {
-			TypedArray typedArray = a.getTheme().obtainStyledAttributes(new int[]{android.R.attr.statusBarColor});
+			TypedArray typedArray = a.getTheme().obtainStyledAttributes(new int[] { android.R.attr.statusBarColor });
 			notifColor = typedArray.getColor(0, notifColor);
 			typedArray.recycle();
 		}
@@ -68,7 +68,8 @@ public class FermataMediaServiceConnection implements ServiceConnection {
 	}
 
 	public void disconnect() {
-		if (!isConnected()) return;
+		if (!isConnected())
+			return;
 		Log.d("Unbinding service from context ", FermataApplication.get());
 		FermataApplication.get().unbindService(this);
 		disconnected();
@@ -90,11 +91,18 @@ public class FermataMediaServiceConnection implements ServiceConnection {
 
 	private void disconnected() {
 		FermataMediaService.ServiceBinder b = binder;
-		if (b == null) return;
+		if (b == null)
+			return;
 		Promise<FermataMediaServiceConnection> p = promise;
 		binder = null;
 		promise = null;
 		if (p != null)
 			p.completeExceptionally(new IllegalStateException("FermataMediaService disconnected"));
+	}
+
+	public void forceVideoFocus() {
+		FermataMediaService.ServiceBinder b = binder;
+		if (b != null)
+			b.getMediaSessionCallback().forceVideoFocus();
 	}
 }

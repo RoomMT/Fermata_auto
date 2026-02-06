@@ -98,7 +98,7 @@ public class FermataWebView extends WebView
 
 		addon.getPreferenceStore().addBroadcastListener(this);
 		getActivity().onSuccess(a -> a.addBroadcastListener(this));
-
+		
 		setDesktopMode(addon, false);
 		setForceDark(addon, false);
 	}

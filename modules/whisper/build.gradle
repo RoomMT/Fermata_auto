@@ -10,7 +10,8 @@ android {
         }
         ndk {
             //noinspection ChromeOsAbiSupport
-            abiFilters = gradle.ext.abiFilters
+            //abiFilters = gradle.ext.abiFilters
+			abiFilters "arm64-v8a"
         }
     }
     buildTypes {

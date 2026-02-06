@@ -48,6 +48,8 @@ import me.aap.utils.ui.view.ToolBarView;
 @SuppressWarnings("unused")
 public class WebBrowserFragment extends MainActivityFragment
 		implements OverlayMenu.SelectionHandler, MainActivityListener {
+	
+	// Biến này không còn quan trọng với logic mới, nhưng giữ lại để tương thích các web thường
 	private boolean fullScreenOnResume;
 
 	@Override
@@ -103,29 +105,32 @@ public class WebBrowserFragment extends MainActivityFragment
 		FermataWebView v = getWebView();
 		if (v == null) return;
 		FermataChromeClient chrome = v.getWebChromeClient();
-		if (chrome != null) {
-			if (chrome.isFullScreen()) {
-				chrome.exitFullScreen();
-				fullScreenOnResume = true;
-			} else {
-				fullScreenOnResume = false;
-			}
+		
+		// [SỬA ĐỔI] Chỉ thoát fullscreen để dọn dẹp UI, không set flag để ép chạy lại
+		if (chrome != null && chrome.isFullScreen()) {
+			chrome.exitFullScreen();
 		}
+		
+		// Reset luôn flag này để tránh xung đột với logic polling của YoutubeWebView
+		fullScreenOnResume = false;
 	}
 
 	@Override
 	public void onResume() {
 		super.onResume();
-		if (!BuildConfig.AUTO || !fullScreenOnResume) return;
+		if (!BuildConfig.AUTO) return;
+		
 		FermataWebView v = getWebView();
 		if (v == null) return;
-		// Calling here onResume makes the video to not get freezed
-		// when you switch to another app and go back to Fermata
+
+		// Gọi onResume của WebView (Quan trọng để YoutubeWebView kích hoạt JS logic)
 		v.onResume();
-		MainActivityDelegate.getActivityDelegate(getContext()).onSuccess(a -> a.post(() -> {
-			FermataChromeClient chrome = v.getWebChromeClient();
-			if (chrome != null) chrome.enterFullScreen();
-		}));
+
+		// [QUAN TRỌNG - XÓA BỎ LOGIC CŨ]
+		// Trước đây đoạn này có code: chrome.enterFullScreen().
+		// Chúng ta ĐÃ XÓA nó đi.
+		// Lý do: YoutubeWebView bây giờ đã "khôn" hơn, nó sẽ tự gọi Fullscreen 
+		// khi video thực sự sẵn sàng thông qua Javascript, không cần Fragment cha can thiệp thô bạo.
 	}
 
 	protected void registerListeners(MainActivityDelegate a) {
@@ -157,6 +162,7 @@ public class WebBrowserFragment extends MainActivityFragment
 		FermataWebView v = getWebView();
 
 		if (v != null) {
+			// Logic này giữ nguyên: Nếu đang ở Browser thường mà vào link Youtube -> Chuyển sang YoutubeFragment
 			if (!(this instanceof YoutubeFragment) && isYoutubeUri(Uri.parse(url)) &&
 					AddonManager.get().hasAddon(me.aap.fermata.R.id.youtube_fragment)) {
 				String u = url;
@@ -192,6 +198,7 @@ public class WebBrowserFragment extends MainActivityFragment
 		if (v == null) return false;
 		FermataChromeClient chrome = v.getWebChromeClient();
 
+		// Logic thoát Fullscreen khi bấm Back là hợp lý, giữ nguyên
 		if ((chrome != null) && chrome.isFullScreen()) {
 			chrome.exitFullScreen();
 			return true;
