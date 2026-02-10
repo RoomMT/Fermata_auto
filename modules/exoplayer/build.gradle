@@ -4,6 +4,19 @@ android {
         versionCode 1
         versionName "1.0"
     }
+
+    ext.addons = [
+            [
+                    name       : 'exoplayer',
+                    class      : 'me.aap.fermata.engine.exoplayer.ExoPlayerAddon',
+                    icon       : 'ic_launcher_foreground',
+                    depends    : '',
+                    enabled    : true,
+                    displayName: '@string/engine_exo_name',
+                    order      : 0,
+                    hasSettings: true
+            ]
+    ]
 }
 
 dependencies {

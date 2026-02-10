@@ -123,12 +123,10 @@ class DefaultPlaylist extends ItemContainer<PlayableItem> implements Playlist, P
 
 	@Override
 	protected void itemAdded(PlayableItem i) {
-		getLib().getAtvInterface(a -> a.addProgram(i));
 	}
 
 	@Override
 	protected void itemRemoved(PlayableItem i) {
 		super.itemRemoved(i);
-		getLib().getAtvInterface(a -> a.removeProgram(i));
 	}
 }

@@ -183,12 +183,10 @@ class DefaultPlaylists extends ItemContainer<Playlist> implements Playlists, Pla
 
 	@Override
 	protected void itemAdded(Playlist i) {
-		getLib().getAtvInterface(a -> a.addChannel(i));
 	}
 
 	@Override
 	protected void itemRemoved(Playlist i) {
 		super.itemRemoved(i);
-		getLib().getAtvInterface(a -> a.removeChannel(i));
 	}
 }

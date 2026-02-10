@@ -62,8 +62,6 @@ public class DefaultMediaLib extends BasicEventBroadcaster<PreferenceStore.Liste
 	private final MetadataRetriever metadataRetriever;
 	private final Map<String, WeakRef<Item>> itemCache = new HashMap<>();
 	private final ReferenceQueue<Item> itemRefQueue = new ReferenceQueue<>();
-	@Nullable
-	private final AtvInterface atvInterface;
 
 	public DefaultMediaLib(Context ctx) {
 		this.ctx = ctx;
@@ -73,7 +71,6 @@ public class DefaultMediaLib extends BasicEventBroadcaster<PreferenceStore.Liste
 		folders = new DefaultFolders(this);
 		favorites = new DefaultFavorites(this);
 		playlists = new DefaultPlaylists(this);
-		atvInterface = AtvInterface.create(this);
 		addBroadcastListener(this);
 	}
 
@@ -270,9 +267,6 @@ public class DefaultMediaLib extends BasicEventBroadcaster<PreferenceStore.Liste
 		return metadataRetriever;
 	}
 
-	public void getAtvInterface(Consumer<AtvInterface> c) {
-		if (atvInterface != null) c.accept(atvInterface);
-	}
 
 	@Override
 	public void onPreferenceChanged(PreferenceStore store, List<Pref<?>> prefs) {

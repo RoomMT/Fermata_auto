@@ -82,7 +82,6 @@ public class MirrorActivity extends CarActivity implements SurfaceHolder.Callbac
 	@Override
 	public void onPause() {
 		super.onPause();
-		if (MirrorServiceFS.sc != null) md.setSurface(MirrorServiceFS.sc);
 	}
 
 	@Override

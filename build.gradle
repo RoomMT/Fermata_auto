@@ -15,20 +15,7 @@ ext {
     ANDROIDX_SWIPEREFRESHLAYOUT_VERSION = '1.2.0-alpha01'
     GUAVA_VERSION = '33.5.0-android'
 
-    addons = [
-            [
-                    name       : 'translate',
-                    icon       : 'translate',
-                    class      : 'me.aap.fermata.addon.TranslateAddon',
-                    hasSettings: false
-            ],
-            [
-                    name   : 'subgen',
-                    icon   : 'subgen',
-                    class  : 'me.aap.fermata.addon.SubGenAddon',
-                    depends: 'exoplayer,translate'
-            ],
-    ]
+    addons = []
 }
 
 buildscript {

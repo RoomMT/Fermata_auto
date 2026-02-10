@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- YouTube Music Color Palette -->
+    <color name="ytm_background">#030303</color>
+    <color name="ytm_surface">#212121</color>
+    <color name="ytm_primary_text">#FFFFFF</color>
+    <color name="ytm_secondary_text">#AAAAAA</color>
+    <color name="ytm_accent">#FF0000</color>
+    <color name="ytm_overlay">#80000000</color>
+
+    <!-- Mapping to App Theme Names -->
+    <color name="colorPrimary">@color/ytm_surface</color>
+    <color name="colorPrimaryDark">@color/ytm_background</color>
+    <color name="colorAccent">@color/ytm_accent</color>
+    <color name="windowBackground">@color/ytm_background</color>
+
+    <!-- Control Panel -->
+    <color name="control_panel_bg">@color/ytm_surface</color>
+    <color name="control_panel_progress">@color/ytm_accent</color>
+
+</resources>

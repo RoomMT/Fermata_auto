@@ -4,183 +4,106 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <LinearLayout
-        android:id="@+id/show_hide_bars"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/focusable_shape_transparent"
-        android:focusable="true"
-        android:gravity="center"
-        android:nextFocusLeft="@id/control_menu_button"
-        app:layout_constraintBottom_toTopOf="@id/barrier"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/show_hide_bars_icon"
-            style="?attr/appControlPanelStyle"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginStart="2dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1"
-            android:adjustViewBounds="true"
-            android:scaleType="fitCenter"
-            android:src="@drawable/collapse" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/seek_time"
-            style="?attr/appSeekBarStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:maxLines="1"
-            android:padding="4dp" />
-    </LinearLayout>
-
-    <me.aap.fermata.ui.view.ControlPanelSeekView
-        android:id="@+id/seek_bar"
-        style="?attr/appSeekBarStyle"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:background="@drawable/focusable_shape_transparent"
-        app:layout_constraintBottom_toTopOf="@id/barrier"
-        app:layout_constraintEnd_toStartOf="@id/control_menu_button"
-        app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toEndOf="@id/show_hide_bars"
+    <ProgressBar
+        android:id="@+id/seek_bar_mini"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:max="1000"
+        android:progress="0"
+        android:progressTint="#FF0000"
+        android:progressBackgroundTint="#33FFFFFF"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/album_art"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_margin="8dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/prev"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/seek_bar_mini" />
+
     <LinearLayout
-        android:id="@+id/control_menu_button"
-        android:layout_width="wrap_content"
+        android:id="@+id/text_container"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/focusable_shape_transparent"
-        android:focusable="true"
-        android:gravity="center"
-        android:nextFocusRight="@id/show_hide_bars"
-        app:layout_constraintBottom_toTopOf="@id/barrier"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/control_play_pause"
+        app:layout_constraintStart_toEndOf="@id/album_art"
+        app:layout_constraintTop_toBottomOf="@id/seek_bar_mini">
 
         <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/seek_total"
-            style="?attr/appSeekBarStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:maxLines="1"
-            android:padding="4dp" />
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/control_menu_button_icon"
-            style="?attr/appControlPanelStyle"
+            android:id="@+id/cp_title"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginStart="2dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1"
-            android:adjustViewBounds="true"
-            android:scaleType="fitCenter"
-            android:src="@drawable/more" />
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Song Title"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/cp_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Artist Name"
+            android:textColor="#AAAAAA"
+            android:textSize="12sp" />
     </LinearLayout>
-
-    <androidx.constraintlayout.widget.Barrier
-        android:id="@+id/barrier"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:barrierDirection="bottom"
-        app:constraint_referenced_ids="show_hide_bars, seek_bar, seek_total" />
-
-    <me.aap.utils.ui.view.ImageButton
-        android:id="@+id/control_prev"
-        style="?attr/appControlPanelStyle"
-        android:layout_width="0dp"
-        android:layout_height="32dp"
-        android:background="@drawable/focusable_shape_transparent"
-        android:clickable="true"
-        android:focusable="true"
-        android:longClickable="true"
-        android:nextFocusLeft="@id/control_next"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:scaleType="fitCenter"
-        android:src="@drawable/prev"
-        app:layout_constraintEnd_toStartOf="@id/control_rw"
-        app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/barrier" />
-
-    <me.aap.utils.ui.view.ImageButton
-        android:id="@+id/control_rw"
-        style="?attr/appControlPanelStyle"
-        android:layout_width="0dp"
-        android:layout_height="32dp"
-        android:background="@drawable/focusable_shape_transparent"
-        android:clickable="true"
-        android:focusable="true"
-        android:longClickable="true"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:scaleType="fitCenter"
-        android:src="@drawable/rw"
-        app:layout_constraintEnd_toStartOf="@id/control_play_pause"
-        app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toEndOf="@id/control_prev"
-        app:layout_constraintTop_toBottomOf="@id/barrier" />
 
     <me.aap.utils.ui.view.ImageButton
         android:id="@+id/control_play_pause"
         style="?attr/appControlPanelStyle"
-        android:layout_width="0dp"
-        android:layout_height="32dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:background="@drawable/focusable_shape_transparent"
         android:clickable="true"
         android:focusable="true"
-        android:longClickable="true"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
+        android:padding="12dp"
         android:scaleType="fitCenter"
         android:src="@drawable/play_pause"
-        app:layout_constraintEnd_toStartOf="@id/control_ff"
-        app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toEndOf="@id/control_rw"
-        app:layout_constraintTop_toBottomOf="@id/barrier" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/control_stop"
+        app:layout_constraintTop_toBottomOf="@id/seek_bar_mini" />
 
     <me.aap.utils.ui.view.ImageButton
-        android:id="@+id/control_ff"
+        android:id="@+id/control_stop"
         style="?attr/appControlPanelStyle"
-        android:layout_width="0dp"
-        android:layout_height="32dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:background="@drawable/focusable_shape_transparent"
         android:clickable="true"
         android:focusable="true"
-        android:longClickable="true"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
+        android:padding="12dp"
         android:scaleType="fitCenter"
-        android:src="@drawable/ff"
-        app:layout_constraintEnd_toStartOf="@id/control_next"
-        app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toEndOf="@id/control_play_pause"
-        app:layout_constraintTop_toBottomOf="@id/barrier" />
-
-    <me.aap.utils.ui.view.ImageButton
-        android:id="@+id/control_next"
-        style="?attr/appControlPanelStyle"
-        android:layout_width="0dp"
-        android:layout_height="32dp"
-        android:background="@drawable/focusable_shape_transparent"
-        android:clickable="true"
-        android:focusable="true"
-        android:longClickable="true"
-        android:nextFocusRight="@id/control_prev"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:scaleType="fitCenter"
-        android:src="@drawable/next"
+        android:src="@drawable/exit"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toEndOf="@id/control_ff"
-        app:layout_constraintTop_toBottomOf="@id/barrier" />
+        app:layout_constraintTop_toBottomOf="@id/seek_bar_mini" />
+
+    <!-- Keep hidden legacy views as ViewGroups to satisfy ControlPanelView expectations -->
+    <View android:id="@+id/seek_bar" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <View android:id="@+id/seek_time" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <View android:id="@+id/seek_total" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <FrameLayout android:id="@+id/show_hide_bars" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone">
+        <ImageView android:layout_width="0dp" android:layout_height="0dp" />
+    </FrameLayout>
+    <FrameLayout android:id="@+id/control_menu_button" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone">
+        <ImageView android:layout_width="0dp" android:layout_height="0dp" />
+    </FrameLayout>
+    <View android:id="@+id/barrier" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <View android:id="@+id/control_prev" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <View android:id="@+id/control_rw" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <View android:id="@+id/control_ff" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <View android:id="@+id/control_next" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
 
 </merge>

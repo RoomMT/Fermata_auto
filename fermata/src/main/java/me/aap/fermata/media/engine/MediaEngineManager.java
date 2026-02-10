@@ -38,15 +38,11 @@ import me.aap.utils.ui.activity.ActivityBase;
  * @author Andrey Pavlenko
  */
 public class MediaEngineManager implements PreferenceStore.Listener {
-	private static final String EXO_PROV_CLASS =
-			"me.aap.fermata.engine.exoplayer.ExoPlayerEngineProvider";
-	private static final String VLC_PROV_CLASS = "me.aap.fermata.engine.vlc.VlcEngineProvider";
+	private static final String EXO_PROV_CLASS = "me.aap.fermata.engine.exoplayer.ExoPlayerEngineProvider";
 	private static final String MODULE_EXO = "exoplayer";
-	private static final String MODULE_VLC = "vlc";
 	final MediaLib lib;
 	final MediaPlayerEngineProvider mediaPlayer;
 	MediaEngineProvider exoPlayer;
-	MediaEngineProvider vlcPlayer;
 	@Nullable
 	private MediaEngineProvider engineProvider;
 
@@ -56,19 +52,12 @@ public class MediaEngineManager implements PreferenceStore.Listener {
 		if (!prefs.hasPref(EXO_ENABLED) && isProviderAvailable(EXO_PROV_CLASS)) {
 			prefs.applyBooleanPref(EXO_ENABLED, true);
 		}
-		if (!prefs.hasPref(VLC_ENABLED) && isProviderAvailable(VLC_PROV_CLASS)) {
-			prefs.applyBooleanPref(VLC_ENABLED, true);
-		}
-		if (!prefs.hasPref(VIDEO_ENGINE) && isProviderAvailable(VLC_PROV_CLASS)) {
-			prefs.setVideoEnginePref(MEDIA_ENG_VLC);
-		}
 
 		this.lib = lib;
 		mediaPlayer = new MediaPlayerEngineProvider();
 		mediaPlayer.init(lib.getContext());
 		lib.getPrefs().addBroadcastListener(this);
-		setExoPlayer(true);
-		setVlcPlayer(true);
+		setExoPlayer(false);
 	}
 
 	public boolean hasCustomEngineProvider() {
@@ -80,7 +69,8 @@ public class MediaEngineManager implements PreferenceStore.Listener {
 	}
 
 	public boolean removeCustomEngineProvider(MediaEngineProvider engineProvider) {
-		if (this.engineProvider != engineProvider) return false;
+		if (this.engineProvider != engineProvider)
+			return false;
 		this.engineProvider = null;
 		return true;
 	}
@@ -89,25 +79,24 @@ public class MediaEngineManager implements PreferenceStore.Listener {
 		return exoPlayer != null;
 	}
 
-	public boolean isVlcPlayerSupported() {
-		return vlcPlayer != null;
-	}
-
 	public boolean isAdditionalPlayerSupported() {
-		return isExoPlayerSupported() || isVlcPlayerSupported();
+		return isExoPlayerSupported();
 	}
 
 	public MediaEngine createEngine(MediaEngine current, PlayableItem i, Listener listener) {
 		var newEng = i.getMediaEngine(current, listener);
 		if (newEng != null) {
-			if ((current != null) && (current != newEng)) current.close();
+			if ((current != null) && (current != newEng))
+				current.close();
 			return newEng;
 		}
 
-		if (engineProvider != null) return engineProvider.createEngine(listener);
+		if (engineProvider != null)
+			return engineProvider.createEngine(listener);
 		if (!isAdditionalPlayerSupported()) {
 			if (current != null) {
-				if (current.getId() == MEDIA_ENG_MP) return create(mediaPlayer, current, i, listener);
+				if (current.getId() == MEDIA_ENG_MP)
+					return create(mediaPlayer, current, i, listener);
 				current.close();
 			}
 
@@ -123,7 +112,8 @@ public class MediaEngineManager implements PreferenceStore.Listener {
 		}
 
 		if (current != null) {
-			if (current.getId() == id) return create(null, current, i, listener);
+			if (current.getId() == id)
+				return create(null, current, i, listener);
 			current.close();
 		}
 
@@ -131,16 +121,14 @@ public class MediaEngineManager implements PreferenceStore.Listener {
 	}
 
 	public MediaEngine createAnotherEngine(@NonNull MediaEngine current, Listener listener) {
-		if (engineProvider != null) return engineProvider.createEngine(listener);
+		if (engineProvider != null)
+			return engineProvider.createEngine(listener);
 		int id = current.getId();
 		PlayableItem i = current.getSource();
 		current.close();
 
 		if (i.getPrefs().getBooleanPref(SubGenAddon.ENABLED) && isExoPlayerSupported()) {
 			return create(exoPlayer, null, i, listener);
-		}
-		if ((vlcPlayer != null) && (id != MEDIA_ENG_VLC)) {
-			return create(vlcPlayer, null, i, listener);
 		}
 		if ((exoPlayer != null) && (id != MEDIA_ENG_EXO)) {
 			return create(exoPlayer, null, i, listener);
@@ -155,9 +143,8 @@ public class MediaEngineManager implements PreferenceStore.Listener {
 	private MediaEngineProvider getProvider(int id) {
 		switch (id) {
 			case MEDIA_ENG_EXO:
-				if (exoPlayer != null) return exoPlayer;
-			case MEDIA_ENG_VLC:
-				if (vlcPlayer != null) return vlcPlayer;
+				if (exoPlayer != null)
+					return exoPlayer;
 			default:
 				return mediaPlayer;
 		}
@@ -166,7 +153,8 @@ public class MediaEngineManager implements PreferenceStore.Listener {
 	public MediaEngine create(MediaEngineProvider p, MediaEngine c, PlayableItem i, Listener l) {
 		if (c != null) {
 			if (isStream(i)) {
-				if (c instanceof StreamEngine) return c;
+				if (c instanceof StreamEngine)
+					return c;
 				c.close();
 				return new StreamEngine((p != null) ? p : getProvider(c.getId()), l);
 			} else if (c instanceof StreamEngine) {
@@ -214,51 +202,18 @@ public class MediaEngineManager implements PreferenceStore.Listener {
 		exoPlayer = null;
 	}
 
-	private void setVlcPlayer(boolean install) {
-		if (lib.getPrefs().getVlcEnabledPref()) {
-			try {
-				vlcPlayer = (MediaEngineProvider) Class.forName(VLC_PROV_CLASS).newInstance();
-				vlcPlayer.init(lib.getContext());
-				return;
-			} catch (Throwable ex) {
-				Log.e(ex, "VlcPlayer not found");
-				if (install) {
-					vlcPlayer = null;
-					FutureSupplier<Void> i = installPlayer(MODULE_VLC, R.string.engine_vlc_name);
-					i.main().onSuccess(v -> setVlcPlayer(false)).onFailure(this::installVlcFailed);
-				}
-			}
-		}
-
-		vlcPlayer = null;
-	}
-
 	@Override
 	public void onPreferenceChanged(PreferenceStore store, List<PreferenceStore.Pref<?>> prefs) {
-		if (prefs.contains(EXO_ENABLED)) {
-			if (lib.getPrefs().getExoEnabledPref()) {
-				exoPlayer = null;
-				FutureSupplier<Void> i = installPlayer(MODULE_EXO, R.string.engine_exo_name);
-				i.main().onSuccess(v -> setExoPlayer(false)).onFailure(this::installExoFailed);
-			} else {
-				exoPlayer = null;
-				Log.i("Uninstalling module ", MODULE_EXO);
-				SplitInstallManager sm = SplitInstallManagerFactory.create(lib.getContext());
-				sm.deferredUninstall(Collections.singletonList(MODULE_EXO)).addOnSuccessListener(
-						r -> toast(R.string.engine_uninstalled, R.string.engine_exo_name));
-			}
-		} else if (prefs.contains(MediaLibPrefs.VLC_ENABLED)) {
-			if (lib.getPrefs().getVlcEnabledPref()) {
-				vlcPlayer = null;
-				FutureSupplier<Void> i = installPlayer(MODULE_VLC, R.string.engine_vlc_name);
-				i.main().onSuccess(v -> setVlcPlayer(false)).onFailure(this::installVlcFailed);
-			} else {
-				vlcPlayer = null;
-				Log.i("Uninstalling module ", MODULE_VLC);
-				SplitInstallManager sm = SplitInstallManagerFactory.create(lib.getContext());
-				sm.deferredUninstall(Collections.singletonList(MODULE_VLC)).addOnSuccessListener(
-						r -> toast(R.string.engine_uninstalled, R.string.engine_vlc_name));
-			}
+		if (lib.getPrefs().getExoEnabledPref()) {
+			exoPlayer = null;
+			FutureSupplier<Void> i = installPlayer(MODULE_EXO, R.string.engine_exo_name);
+			i.main().onSuccess(v -> setExoPlayer(false)).onFailure(this::installExoFailed);
+		} else {
+			exoPlayer = null;
+			Log.i("Uninstalling module ", MODULE_EXO);
+			SplitInstallManager sm = SplitInstallManagerFactory.create(lib.getContext());
+			sm.deferredUninstall(Collections.singletonList(MODULE_EXO)).addOnSuccessListener(
+					r -> toast(R.string.engine_uninstalled, R.string.engine_exo_name));
 		}
 	}
 
@@ -268,9 +223,9 @@ public class MediaEngineManager implements PreferenceStore.Listener {
 		String channelId = "fermata.engine.install";
 		String title = ctx.getString(R.string.module_installation, name);
 		String installing = ctx.getString(R.string.installing, name);
-		FutureSupplier<MainActivity> getActivity =
-				ActivityBase.create(ctx, channelId, title, R.drawable.notification, title, null,
-						MainActivity.class);
+		FutureSupplier<MainActivity> getActivity = ActivityBase.create(ctx, channelId, title, R.drawable.notification,
+				title, null,
+				MainActivity.class);
 
 		return getActivity.then(a -> {
 			DynamicModuleInstaller i = new DynamicModuleInstaller(a);
@@ -297,11 +252,4 @@ public class MediaEngineManager implements PreferenceStore.Listener {
 		}
 	}
 
-	private void installVlcFailed(Throwable ex) {
-		setVlcPlayer(false);
-		if (vlcPlayer == null) {
-			Log.e(ex, "Failed to install VlcPlayer");
-			toast(R.string.err_failed_install_module, R.string.engine_vlc_name);
-		}
-	}
 }

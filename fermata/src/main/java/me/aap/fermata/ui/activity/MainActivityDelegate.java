@@ -76,6 +76,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.textview.MaterialTextView;
 
 import java.io.IOException;
@@ -96,7 +97,6 @@ import me.aap.fermata.addon.FermataAddon;
 import me.aap.fermata.addon.FermataFragmentAddon;
 import me.aap.fermata.addon.MediaLibAddon;
 import me.aap.fermata.media.engine.MediaEngineManager;
-import me.aap.fermata.media.lib.AtvInterface;
 import me.aap.fermata.media.lib.DefaultMediaLib;
 import me.aap.fermata.media.lib.ExportedItem;
 import me.aap.fermata.media.lib.ExtRoot;
@@ -445,8 +445,6 @@ public class MainActivityDelegate extends ActivityDelegate
 					return false;
 				if (l instanceof FermataAddon)
 					return false;
-				if (l instanceof AtvInterface)
-					return false;
 				if ((l instanceof DefaultMediaLib) && (b instanceof DefaultMediaLib))
 					return false;
 				if ((l instanceof MediaEngineManager) && (b instanceof DefaultMediaLib))
@@ -724,6 +722,17 @@ public class MainActivityDelegate extends ActivityDelegate
 				progressBar.hide();
 			}
 		});
+	}
+
+	@Override
+	public void setActiveNavItemId(int id) {
+		super.setActiveNavItemId(id);
+
+		if (navBar != null) {
+			View v = navBar.findViewById(id);
+			if (v != null)
+				v.setSelected(true);
+		}
 	}
 
 	public void backToNavFragment() {
@@ -1044,12 +1053,16 @@ public class MainActivityDelegate extends ActivityDelegate
 		a.setContentView(getLayout());
 		toolBar = a.findViewById(R.id.tool_bar);
 		progressBar = a.findViewById(R.id.content_loading_progress);
-		navBar = a.findViewById(R.id.nav_bar);
+		navBar = findViewById(R.id.nav_bar);
 		body = a.findViewById(R.id.body_layout);
 		controlPanel = a.findViewById(R.id.control_panel);
 		floatingButton = a.findViewById(R.id.floating_button);
-		floatingButton.setScale(getPrefs().getTextIconSizePref(this));
-		controlPanel.bind(getMediaServiceBinder());
+		if (floatingButton != null) {
+			floatingButton.setScale(getPrefs().getTextIconSizePref(this));
+		}
+		if (controlPanel != null) {
+			controlPanel.bind(getMediaServiceBinder());
+		}
 
 		if (VERSION.SDK_INT >= VERSION_CODES.VANILLA_ICE_CREAM && !a.isCarActivity()) {
 			ViewCompat.setOnApplyWindowInsetsListener(toolBar, (v, insets) -> {
@@ -1102,8 +1115,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			if (floatingButton != null)
 				floatingButton.setScale(getPrefs().getTextIconSizePref(this));
 		} else if (MainActivityPrefs.hasNavBarSizePref(this, prefs)) {
-			if (navBar != null)
-				navBar.setSize(getPrefs().getNavBarSizePref(this));
+			if (navBar instanceof NavBarView)
+				((NavBarView) navBar).setSize(getPrefs().getNavBarSizePref(this));
 		} else if (MainActivityPrefs.hasToolBarSizePref(this, prefs)) {
 			if (toolBar != null)
 				toolBar.setSize(getPrefs().getToolBarSizePref(this));

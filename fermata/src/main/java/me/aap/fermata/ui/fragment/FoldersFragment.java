@@ -2,12 +2,8 @@ package me.aap.fermata.ui.fragment;
 
 import static android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION;
 import static android.os.Build.VERSION.SDK_INT;
-import static me.aap.fermata.BuildConfig.ENABLE_GS;
 import static me.aap.fermata.util.Utils.isSafSupported;
-import static me.aap.fermata.vfs.FermataVfsManager.GDRIVE_ID;
 import static me.aap.fermata.vfs.FermataVfsManager.M3U_ID;
-import static me.aap.fermata.vfs.FermataVfsManager.SFTP_ID;
-import static me.aap.fermata.vfs.FermataVfsManager.SMB_ID;
 import static me.aap.utils.async.Completed.completed;
 import static me.aap.utils.function.ResultConsumer.Cancel.isCancellation;
 
@@ -113,10 +109,12 @@ public class FoldersFragment extends MediaLibFragment {
 	@Override
 	public void onHiddenChanged(boolean hidden) {
 		super.onHiddenChanged(hidden);
-		if (hidden) return;
+		if (hidden)
+			return;
 
 		FoldersAdapter a = getAdapter();
-		if (a != null) a.animateAddButton(a.getParent());
+		if (a != null)
+			a.animateAddButton(a.getParent());
 	}
 
 	@Override
@@ -140,9 +138,6 @@ public class FoldersFragment extends MediaLibFragment {
 			} else {
 				b.addItem(R.id.vfs_file_system, R.string.vfs_file_system);
 			}
-			b.addItem(R.id.vfs_sftp, R.string.vfs_sftp);
-			b.addItem(R.id.vfs_smb, R.string.vfs_smb);
-			if (ENABLE_GS) b.addItem(R.id.vfs_gdrive, R.string.vfs_gdrive);
 			b.addItem(R.id.m3u_playlist, R.string.m3u_playlist);
 		});
 	}
@@ -155,15 +150,6 @@ public class FoldersFragment extends MediaLibFragment {
 			return true;
 		} else if (itemId == R.id.vfs_content) {
 			addFolderIntent();
-			return true;
-		} else if (ENABLE_GS && (itemId == R.id.vfs_gdrive)) {
-			addFolderVfs(GDRIVE_ID, R.string.vfs_gdrive);
-			return true;
-		} else if (itemId == R.id.vfs_sftp) {
-			addFolderVfs(SFTP_ID, R.string.vfs_sftp);
-			return true;
-		} else if (itemId == R.id.vfs_smb) {
-			addFolderVfs(SMB_ID, R.string.vfs_smb);
 			return true;
 		} else if (itemId == R.id.m3u_playlist) {
 			addFolderVfs(M3U_ID, R.string.m3u_playlist);
@@ -190,7 +176,8 @@ public class FoldersFragment extends MediaLibFragment {
 
 	private void addFolderPicker(VirtualFileSystem fs) {
 		if (!(getMainActivity().showFragment(
-				me.aap.utils.R.id.file_picker) instanceof FilePickerFragment f)) return;
+				me.aap.utils.R.id.file_picker) instanceof FilePickerFragment f))
+			return;
 		f.setMode(FilePickerFragment.FOLDER);
 		f.setFileSystem(fs);
 		f.setFileConsumer(this::addFolderResult);
@@ -209,7 +196,8 @@ public class FoldersFragment extends MediaLibFragment {
 
 	private void failedToLoadModule(@StringRes int name, Throwable ex) {
 		getMainActivity().showFragment(R.id.folders_fragment);
-		if (isCancellation(ex)) return;
+		if (isCancellation(ex))
+			return;
 
 		App.get().getHandler().post(() -> {
 			String n = getString(name);
@@ -226,10 +214,12 @@ public class FoldersFragment extends MediaLibFragment {
 	}
 
 	private void addFolderResult(Intent data) {
-		if (data == null) return;
+		if (data == null)
+			return;
 
 		Uri uri = data.getData();
-		if (uri == null) return;
+		if (uri == null)
+			return;
 
 		getMainActivityDelegate().onSuccess(a -> {
 			a.getContext().getContentResolver()
@@ -267,9 +257,12 @@ public class FoldersFragment extends MediaLibFragment {
 	@Override
 	public void onPreferenceChanged(PreferenceStore store, List<PreferenceStore.Pref<?>> prefs) {
 		FoldersAdapter a = getAdapter();
-		if (a.isCallbackCall()) return;
-		if (prefs.contains(FoldersPrefs.FOLDERS) && isRootFolder()) a.reload();
-		else super.onPreferenceChanged(store, prefs);
+		if (a.isCallbackCall())
+			return;
+		if (prefs.contains(FoldersPrefs.FOLDERS) && isRootFolder())
+			a.reload();
+		else
+			super.onPreferenceChanged(store, prefs);
 	}
 
 	private final class FoldersAdapter extends ListAdapter {
@@ -291,27 +284,30 @@ public class FoldersFragment extends MediaLibFragment {
 		@Override
 		protected void onItemDismiss(int position) {
 			BrowsableItem i = getAdapter().getParent();
-			if (i instanceof Folders) ((Folders) i).removeItem(position);
+			if (i instanceof Folders)
+				((Folders) i).removeItem(position);
 			super.onItemDismiss(position);
 		}
 
 		@Override
 		protected boolean onItemMove(int fromPosition, int toPosition) {
 			BrowsableItem i = getAdapter().getParent();
-			if (i instanceof Folders) ((Folders) i).moveItem(fromPosition, toPosition);
+			if (i instanceof Folders)
+				((Folders) i).moveItem(fromPosition, toPosition);
 			return super.onItemMove(fromPosition, toPosition);
 		}
 
 		private void animateAddButton(BrowsableItem parent) {
-			if (!(parent instanceof Folders)) return;
+			if (!(parent instanceof Folders))
+				return;
 
 			parent.getUnsortedChildren().onSuccess(c -> {
-				if (!c.isEmpty()) return;
+				if (!c.isEmpty())
+					return;
 
 				FloatingButton fb = getMainActivity().getFloatingButton();
 				fb.requestFocus();
-				Animation shake =
-						AnimationUtils.loadAnimation(getContext(), me.aap.utils.R.anim.shake_y_20);
+				Animation shake = AnimationUtils.loadAnimation(getContext(), me.aap.utils.R.anim.shake_y_20);
 				fb.startAnimation(shake);
 			});
 		}

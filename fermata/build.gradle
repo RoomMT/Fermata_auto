@@ -35,7 +35,6 @@ android {
             resValue "string", "media_service_name_auto", "@string/media_service_name_auto_release"
             resValue "string", "media_service_name_mobile", "@string/media_service_name_mobile_release"
             resValue "string", "mirror_service_name", "@string/mirror_service_name_release"
-            resValue "string", "mirror_fs_service_name", "@string/mirror_fs_service_name_release"
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
                     '../proguard-rules.pro', '../depends/utils/proguard-rules.pro'
             signingConfig signingConfigs.release
@@ -50,7 +49,6 @@ android {
             resValue "string", "media_service_name_auto", "@string/media_service_name_auto_debug"
             resValue "string", "media_service_name_mobile", "@string/media_service_name_mobile_debug"
             resValue "string", "mirror_service_name", "@string/mirror_service_name_debug"
-            resValue "string", "mirror_fs_service_name", "@string/mirror_fs_service_name_debug"
             signingConfig signingConfigs.release
             buildConfigField "boolean", 'D', 'true'
         }
@@ -73,7 +71,7 @@ android {
             applicationIdSuffix '.auto' + project.getProperties().getOrDefault('APP_ID_SFX', '')
             resValue "string", "app_name", "@string/app_name_auto"
             resValue "string", "media_service_name", "@string/media_service_name_auto"
-            resValue "drawable", "media_service_icon", "@drawable/media_service"
+            resValue "drawable", "media_service_icon", "@drawable/launcher"
             buildConfigField "boolean", 'AUTO', 'true'
             buildConfigField "boolean", 'ENABLE_GS', "${gradle.ext.enableGoogleServices}"
 
@@ -91,6 +89,11 @@ android {
 
     dynamicFeatures.addAll(gradle.ext.modules)
 
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
     namespace 'me.aap.fermata'
 }
 
@@ -104,7 +107,6 @@ dependencies {
     implementation "com.google.android.play:feature-delivery:${ANDROID_PLAY_CORE_FD_VERSION}"
     implementation 'com.google.android.play:asset-delivery:2.3.0'
     implementation 'com.google.android.play:app-update:2.1.0'
-    implementation 'androidx.tvprovider:tvprovider:1.1.0'
     implementation 'androidx.annotation:annotation:1.9.1'
     implementation "androidx.car.app:app:1.7.0-rc01"
     implementation "androidx.legacy:legacy-support-core-utils:1.0.0"

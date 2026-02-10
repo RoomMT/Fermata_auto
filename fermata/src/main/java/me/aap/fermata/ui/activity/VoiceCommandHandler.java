@@ -2,7 +2,6 @@ package me.aap.fermata.ui.activity;
 
 import static me.aap.fermata.media.pref.PlaybackControlPrefs.TIME_UNIT_SECOND;
 import static me.aap.fermata.ui.activity.MainActivityPrefs.VOICE_CONTROL_SUBST;
-import static me.aap.fermata.ui.activity.VoiceCommand.ACTION_CHAT;
 import static me.aap.utils.ui.UiUtils.ID_NULL;
 
 import android.content.Context;
@@ -59,7 +58,6 @@ class VoiceCommandHandler {
 	private Pattern lFolders;
 	private Pattern lFavorites;
 	private Pattern lPlaylists;
-	private Pattern lTV;
 	private Pattern lYoutube;
 	private Pattern lBrowser;
 	private Pattern uMinute;
@@ -68,7 +66,6 @@ class VoiceCommandHandler {
 	private PatternCompat cFF;
 	private PatternCompat cRW;
 	private PatternCompat cFindPlayOpen;
-	private PatternCompat cChat;
 	private String[] nums;
 	private Map<String, String> subst = Collections.emptyMap();
 
@@ -78,7 +75,8 @@ class VoiceCommandHandler {
 
 	private void init() {
 		String lang = activity.getPrefs().getVoiceControlLang(activity);
-		if (lang.equals(this.lang)) return;
+		if (lang.equals(this.lang))
+			return;
 
 		Context ctx = activity.getContext();
 		Configuration cfg = new Configuration(ctx.getResources().getConfiguration());
@@ -97,7 +95,6 @@ class VoiceCommandHandler {
 		lFolders = compile(res, R.string.vcmd_location_folders);
 		lFavorites = compile(res, R.string.vcmd_location_favorites);
 		lPlaylists = compile(res, R.string.vcmd_location_playlists);
-		lTV = compile(res, R.string.vcmd_location_tv);
 		lYoutube = compile(res, R.string.vcmd_location_youtube);
 		lBrowser = compile(res, R.string.vcmd_location_browser);
 		uMinute = compile(res, R.string.vcmd_time_unit_minute);
@@ -106,7 +103,6 @@ class VoiceCommandHandler {
 		cFF = PatternCompat.compile(res.getString(R.string.vcmd_ff));
 		cRW = PatternCompat.compile(res.getString(R.string.vcmd_rw));
 		cFindPlayOpen = PatternCompat.compile(res.getString(R.string.vcmd_find_play_open));
-		cChat = PatternCompat.compile(res.getString(R.string.vcmd_chat));
 		nums = res.getString(R.string.vcmd_nums).split(" ");
 		updateWordSubst();
 		this.lang = lang;
@@ -121,15 +117,6 @@ class VoiceCommandHandler {
 		cmd = subst(cmd);
 
 		AddonManager amgr = AddonManager.get();
-
-		if (amgr.hasAddon(R.id.chat_addon)) {
-			Matcher m = cChat.matcher(cmd);
-			if (m.matches() &&
-					(activity.showFragment(R.id.chat_addon) instanceof MainActivityFragment f)) {
-				f.voiceCommand(new VoiceCommand(cChat.group(m, QUERY), ACTION_CHAT));
-				return true;
-			}
-		}
 
 		if (aPlay.matcher(cmd).matches()) {
 			activity.getMediaSessionCallback().play().thenRun(activity::goToCurrent);
@@ -157,11 +144,13 @@ class VoiceCommandHandler {
 		MediaEngineManager mgr = cb.getEngineManager();
 		MediaEngine eng;
 
-		if (mgr.isVlcPlayerSupported() && ((eng = cb.getEngine()) != null)) {
+		if (mgr.isAdditionalPlayerSupported() && ((eng = cb.getEngine()) != null)) {
 			if (aSubOn.matcher(cmd).matches()) {
-				if (eng.getCurrentSubtitleStreamInfo() != null) return true;
+				if (eng.getCurrentSubtitleStreamInfo() != null)
+					return true;
 				eng.getSubtitleStreamInfo().main().onSuccess(sub -> {
-					if (!sub.isEmpty()) eng.setCurrentSubtitleStream(sub.get(0));
+					if (!sub.isEmpty())
+						eng.setCurrentSubtitleStream(sub.get(0));
 				});
 				return true;
 			}
@@ -171,10 +160,13 @@ class VoiceCommandHandler {
 			}
 			if (aSubChange.matcher(cmd).matches()) {
 				eng.getSubtitleStreamInfo().main().onSuccess(sub -> {
-					if (!sub.isEmpty()) return;
+					if (!sub.isEmpty())
+						return;
 					var cur = eng.getCurrentSubtitleStreamInfo();
-					if (cur == null) eng.setCurrentSubtitleStream(sub.get(0));
-					else eng.setCurrentSubtitleStream(next(sub, cur));
+					if (cur == null)
+						eng.setCurrentSubtitleStream(sub.get(0));
+					else
+						eng.setCurrentSubtitleStream(next(sub, cur));
 				});
 				return true;
 			}
@@ -186,51 +178,60 @@ class VoiceCommandHandler {
 
 		Matcher m;
 		PatternCompat ff = null;
-		if ((m = cFF.matcher(cmd)).matches()) ff = cFF;
-		else if ((m = cRW.matcher(cmd)).matches()) ff = cRW;
+		if ((m = cFF.matcher(cmd)).matches())
+			ff = cFF;
+		else if ((m = cRW.matcher(cmd)).matches())
+			ff = cRW;
 
 		if (ff != null) {
 			String n = ff.group(m, NUMBER);
-			if (n == null) return false;
+			if (n == null)
+				return false;
 			String u = ff.group(m, UNIT);
 			int time = toNum(n);
-			if (time < 0) return false;
-			if (matches(uMinute, u)) time *= 60;
-			else if (matches(uHour, u)) time *= 3600;
+			if (time < 0)
+				return false;
+			if (matches(uMinute, u))
+				time *= 60;
+			else if (matches(uHour, u))
+				time *= 3600;
 			return activity.getMediaSessionCallback()
 					.rewindFastForward(ff == cFF, time, TIME_UNIT_SECOND, 1);
 		}
 
 		if ((m = cFindPlayOpen.matcher(cmd)).matches()) {
 			String q = cFindPlayOpen.group(m, QUERY);
-			if ((q == null) || (q.trim().isEmpty())) return false;
-			int action = matches(aFind, cFindPlayOpen.group(m, ACTION)) ? VoiceCommand.ACTION_FIND :
-					matches(aOpen, cFindPlayOpen.group(m, ACTION)) ? VoiceCommand.ACTION_OPEN :
-							VoiceCommand.ACTION_PLAY;
+			if ((q == null) || (q.trim().isEmpty()))
+				return false;
+			int action = matches(aFind, cFindPlayOpen.group(m, ACTION)) ? VoiceCommand.ACTION_FIND
+					: matches(aOpen, cFindPlayOpen.group(m, ACTION)) ? VoiceCommand.ACTION_OPEN
+							: VoiceCommand.ACTION_PLAY;
 			VoiceCommand vcmd = new VoiceCommand(q, action);
 			String location = cFindPlayOpen.group(m, LOCATION);
 
 			if (location == null) {
 				MainActivityFragment f = activity.getActiveMainActivityFragment();
-				if ((f == null) || !f.isVoiceCommandsSupported()) return false;
+				if ((f == null) || !f.isVoiceCommandsSupported())
+					return false;
 				f.voiceCommand(vcmd);
 				return true;
 			}
 
 			int fid = ID_NULL;
-			if (matches(lFolders, location)) fid = R.id.folders_fragment;
-			else if (matches(lFavorites, location)) fid = R.id.favorites_fragment;
-			else if (matches(lPlaylists, location)) fid = R.id.playlists_fragment;
+			if (matches(lFolders, location))
+				fid = R.id.folders_fragment;
+			else if (matches(lFavorites, location))
+				fid = R.id.favorites_fragment;
+			else if (matches(lPlaylists, location))
+				fid = R.id.playlists_fragment;
 
 			if (fid == ID_NULL) {
-				if (amgr.hasAddon(R.id.tv_fragment) && matches(lTV, location)) fid = R.id.tv_fragment;
-				else if (amgr.hasAddon(R.id.youtube_fragment) && matches(lYoutube, location))
+				if (amgr.hasAddon(R.id.youtube_fragment) && matches(lYoutube, location))
 					fid = R.id.youtube_fragment;
-				else if (amgr.hasAddon(R.id.web_browser_fragment) && matches(lBrowser, location))
-					fid = R.id.web_browser_fragment;
 			}
 
-			if (fid == ID_NULL) return false;
+			if (fid == ID_NULL)
+				return false;
 			activity.showFragment(fid);
 			searchInFragment(fid, vcmd, 0);
 			return true;
@@ -254,8 +255,10 @@ class VoiceCommandHandler {
 				if (folder == null) {
 					f.voiceCommand(cmd);
 				} else {
-					if (cmd.isPlay()) mf.playFolder(folder);
-					else mf.openFolder(folder);
+					if (cmd.isPlay())
+						mf.playFolder(folder);
+					else
+						mf.openFolder(folder);
 				}
 			});
 		} else {
@@ -269,8 +272,10 @@ class VoiceCommandHandler {
 			return;
 		}
 		MainActivityFragment f = activity.getActiveMainActivityFragment();
-		if (f instanceof FavoritesFragment) ((FavoritesFragment) f).play();
-		else activity.post(() -> playFavorites(attempt + 1));
+		if (f instanceof FavoritesFragment)
+			((FavoritesFragment) f).play();
+		else
+			activity.post(() -> playFavorites(attempt + 1));
 	}
 
 	public void updateWordSubst() {
@@ -279,7 +284,8 @@ class VoiceCommandHandler {
 		try (BufferedReader r = new BufferedReader(new StringReader(pref))) {
 			for (String l = r.readLine(); l != null; l = r.readLine()) {
 				int idx = l.indexOf(':');
-				if (idx < 0) continue;
+				if (idx < 0)
+					continue;
 				subst.put(l.substring(0, idx).trim().toLowerCase(),
 						l.substring(idx + 1).trim().toLowerCase());
 			}
@@ -297,15 +303,18 @@ class VoiceCommandHandler {
 				int c = cmd.codePointAt(i);
 
 				if (Character.isWhitespace(c)) {
-					if (start == -1) continue;
+					if (start == -1)
+						continue;
 					if (!subst.isEmpty()) {
 						String r = subst.get(b.substring(start, b.length()));
-						if (r != null) b.replace(start, b.length(), r);
+						if (r != null)
+							b.replace(start, b.length(), r);
 					}
 					start = -1;
 				} else {
 					if (start == -1) {
-						if (b.length() != 0) b.append(' ');
+						if (b.length() != 0)
+							b.append(' ');
 						start = b.length();
 					}
 					b.appendCodePoint(Character.toLowerCase(c));
@@ -313,7 +322,8 @@ class VoiceCommandHandler {
 			}
 			if ((start != -1) && !subst.isEmpty()) {
 				String r = subst.get(b.substring(start, b.length()));
-				if (r != null) b.replace(start, b.length(), r);
+				if (r != null)
+					b.replace(start, b.length(), r);
 			}
 
 			return b.toString();
@@ -339,7 +349,8 @@ class VoiceCommandHandler {
 		String v1 = n + '|';
 		String v2 = '|' + n;
 		for (int i = 0; i < nums.length; i++) {
-			if (nums[i].equals(n) || nums[i].contains(v1) || nums[i].contains(v2)) return i;
+			if (nums[i].equals(n) || nums[i].contains(v1) || nums[i].contains(v2))
+				return i;
 		}
 		return -1;
 	}

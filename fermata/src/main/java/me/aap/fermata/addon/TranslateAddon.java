@@ -21,7 +21,7 @@ import me.aap.utils.pref.PreferenceStore.Pref;
 @Keep
 public class TranslateAddon implements FermataAddon {
 	public static final Pref<Supplier<String>> IMPL =
-			Pref.s("TR_IMPL", "me.aap.fermata.mlkit.MlkitTranslateAddon");
+			Pref.s("TR_IMPL", (String) null);
 	private static final AddonInfo info = FermataAddon.findAddonInfo(TranslateAddon.class.getName());
 	private final CacheMap<String, Translator> cache = new CacheMap<>(30);
 

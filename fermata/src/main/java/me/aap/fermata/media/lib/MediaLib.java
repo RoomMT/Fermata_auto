@@ -12,6 +12,8 @@ import static me.aap.utils.async.Completed.completedVoid;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.media.session.MediaSession;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.media.MediaBrowserCompat.MediaItem;
@@ -88,7 +90,6 @@ public interface MediaLib {
 	@NonNull
 	MetadataRetriever getMetadataRetriever();
 
-	void getAtvInterface(Consumer<AtvInterface> c);
 
 	default BitmapCache getBitmapCache() {
 		return getMetadataRetriever().getBitmapCache();
@@ -405,6 +406,23 @@ public interface MediaLib {
 		default MediaEngine getMediaEngine(@Nullable MediaEngine current,
 																			 MediaEngine.Listener listener) {
 			return null;
+		}
+
+		@NonNull
+		default String getTitle() {
+			return getName();
+		}
+
+		@NonNull
+		default String getSubtitle() {
+			return "";
+		}
+
+		@NonNull
+		default FutureSupplier<Drawable> loadIcon() {
+			Context ctx = getLib().getContext();
+			return getLib().getBitmap(getResourceUri(ctx, getIcon()).toString(),
+					true, true).map(bm -> new BitmapDrawable(ctx.getResources(), bm));
 		}
 	}
 

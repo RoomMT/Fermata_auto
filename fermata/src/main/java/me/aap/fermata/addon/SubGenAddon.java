@@ -36,7 +36,7 @@ import me.aap.utils.ui.activity.ActivityBase;
 @Keep
 public class SubGenAddon implements FermataAddon {
 	public static final Pref<BooleanSupplier> ENABLED = Pref.b("SG_ENABLED", false);
-	public static final Pref<Supplier<String>> IMPL = Pref.s("SG_IMPL", "whisper");
+	public static final Pref<Supplier<String>> IMPL = Pref.s("SG_IMPL", (String) null);
 	public static final Pref<Supplier<String>> LANG = Pref.s("SG_LANG", "auto");
 	public static final Pref<IntSupplier> BUF_LEN = Pref.i("SG_BUF_LEN", 20);
 	public static final Pref<IntSupplier> CHUNK_LEN = Pref.i("SG_CHUNK_LEN", 5);

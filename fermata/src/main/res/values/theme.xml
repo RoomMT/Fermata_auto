@@ -8,36 +8,46 @@
     <attr name="appStreamProgressStyle" format="reference" />
     <attr name="appVideoInfoStyle" format="reference" />
 
-    <style name="AppTheme" parent="Theme.Utils.Base">
+    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
         <item name="android:forceDarkAllowed" tools:targetApi="q">true</item>
         <item name="android:isLightTheme" tools:targetApi="q">false</item>
-        <item name="android:navigationBarColor">?attr/colorPrimary</item>
-        <item name="android:windowBackground">@drawable/app_background</item>
+        
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        
+        <item name="android:windowBackground">@color/windowBackground</item>
+        <item name="android:navigationBarColor">@color/colorPrimary</item>
+        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
+        <item name="android:textColorPrimary">@color/ytm_primary_text</item>
+        <item name="android:textColorSecondary">@color/ytm_secondary_text</item>
+
         <item name="appMediaItemStyle">@style/AppTheme.MediaItemStyle</item>
         <item name="appControlPanelStyle">@style/AppTheme.ControlPanelStyle</item>
         <item name="appSeekBarStyle">@style/AppTheme.SeekBarStyle</item>
         <item name="appEqualizerStyle">@style/AppTheme.EqualizerStyle</item>
         <item name="appStreamProgressStyle">@style/AppTheme.StreamProgressStyle</item>
         <item name="appVideoInfoStyle">@style/AppTheme.VideoInfoStyle</item>
-        <item name="cornerRadius">5dp</item>
+        <item name="cornerRadius">8dp</item>
     </style>
 
     <style name="AppTheme.MediaItemStyle">
-        <item name="iconColor">?attr/colorOnSecondary</item>
-        <item name="hintColor">@android:color/holo_green_light</item>
+        <item name="iconColor">@color/ytm_secondary_text</item>
+        <item name="hintColor">@color/ytm_accent</item>
         <item name="titleTextAppearance">?attr/textAppearanceListItem</item>
         <item name="subtitleTextAppearance">?attr/textAppearanceCaption</item>
         <item name="android:textColor">@color/media_item_text_color</item>
         <item name="tint">@color/media_item_tint</item>
-        <item name="indicatorColor">@color/media_item_tint</item>
-        <item name="elevation">20dp</item>
+        <item name="indicatorColor">@color/ytm_accent</item>
+        <item name="elevation">0dp</item> <!-- YTM is flat -->
     </style>
 
     <style name="AppTheme.ControlPanelStyle">
-        <item name="size">70dp</item>
-        <item name="tint">?attr/colorOnPrimary</item>
-        <item name="android:colorBackground">?attr/colorPrimary</item>
+        <item name="size">64dp</item> <!-- Standard YTM mini player height -->
+        <item name="tint">@color/ytm_primary_text</item>
+        <item name="android:colorBackground">@color/control_panel_bg</item>
         <item name="textAppearance">@style/AppTheme.ControlPanelTextAppearance</item>
+        <item name="android:elevation">8dp</item>
     </style>
 
     <style name="AppTheme.ControlPanelTextAppearance" parent="TextAppearance.MaterialComponents.Body1">
@@ -45,15 +55,15 @@
     </style>
 
     <style name="AppTheme.SeekBarStyle">
-        <item name="android:textColor">?android:attr/textColorPrimary</item>
-        <item name="android:thumbTint">?attr/colorOnPrimary</item>
-        <item name="android:progressTint">?attr/colorOnPrimary</item>
-        <item name="android:secondaryProgressTint">?attr/colorAccent</item>
+        <item name="android:textColor">@color/ytm_secondary_text</item>
+        <item name="android:thumbTint">@color/ytm_accent</item>
+        <item name="android:progressTint">@color/ytm_accent</item>
+        <item name="android:secondaryProgressTint">@color/ytm_secondary_text</item>
     </style>
 
     <style name="AppTheme.EqualizerStyle">
         <item name="android:textColor">?android:attr/textColorSecondary</item>
-        <item name="tint">?attr/colorOnSecondary</item>
+        <item name="tint">@color/ytm_secondary_text</item>
     </style>
 
     <style name="AppTheme.VideoInfoStyle">
@@ -61,9 +71,9 @@
     </style>
 
     <style name="AppTheme.StreamProgressStyle">
-        <item name="indicatorColor">#FFD600</item>
-        <item name="trackColor">?attr/colorSecondary</item>
-        <item name="trackCornerRadius">2dp</item>
+        <item name="indicatorColor">@color/ytm_accent</item>
+        <item name="trackColor">@color/ytm_surface</item>
+        <item name="trackCornerRadius">0dp</item>
     </style>
 
 </resources>

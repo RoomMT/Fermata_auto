@@ -39,9 +39,18 @@ public class FermataApplication extends NetSplitCompatApp {
 
 	@Override
 	public void onCreate() {
+		Log.d("FermataApplication.onCreate() started");
+		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+			Log.e(e, "Uncaught exception in thread ", t.getName());
+		});
 		super.onCreate();
-		vfsManager = new FermataVfsManager();
+		try {
+			vfsManager = new FermataVfsManager();
+		} catch (Throwable t) {
+			Log.e(t, "Failed to initialize FermataVfsManager");
+		}
 		bitmapCache = new BitmapCache();
+		Log.d("FermataApplication.onCreate() finished");
 	}
 
 	public boolean isConnectedToAuto() {
@@ -62,8 +71,7 @@ public class FermataApplication extends NetSplitCompatApp {
 		if (ps == null) {
 			synchronized (this) {
 				if ((ps = preferenceStore) == null) {
-					preferenceStore =
-							ps = SharedPreferenceStore.create(getSharedPreferences("fermata", MODE_PRIVATE));
+					preferenceStore = ps = SharedPreferenceStore.create(getSharedPreferences("fermata", MODE_PRIVATE));
 				}
 			}
 		}
@@ -98,7 +106,8 @@ public class FermataApplication extends NetSplitCompatApp {
 	@Override
 	public File getLogFile() {
 		File dir = getExternalFilesDir(null);
-		if (dir == null) dir = getFilesDir();
+		if (dir == null)
+			dir = getFilesDir();
 		return new File(dir, "Fermata.log");
 	}
 
@@ -121,7 +130,8 @@ public class FermataApplication extends NetSplitCompatApp {
 	}
 
 	public void setMirroringMode(int mirroringMode) {
-		if (!BuildConfig.AUTO) return;
+		if (!BuildConfig.AUTO)
+			return;
 		this.mirroringMode = mirroringMode;
 
 		if (mirroringMode == 0) {

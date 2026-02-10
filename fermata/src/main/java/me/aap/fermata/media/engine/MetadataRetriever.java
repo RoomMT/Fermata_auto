@@ -71,8 +71,7 @@ public class MetadataRetriever implements Closeable {
 	private static final String COL_ART = "Art";
 	private static final String COL_DURATION = "Duration";
 	private static final String COL_ID_PATTERN = COL_ID + " LIKE ? AND NOT " + COL_ID + " LIKE ?";
-	private static final String[] QUERY_COLUMNS =
-			{COL_ID, COL_TITLE, COL_ALBUM, COL_ARTIST, COL_DURATION, COL_ART};
+	private static final String[] QUERY_COLUMNS = { COL_ID, COL_TITLE, COL_ALBUM, COL_ARTIST, COL_DURATION, COL_ART };
 	private static final byte ART_URI = 0;
 	private static final byte ART_HASH = 1;
 	private static final String[] CONTENT_COLUMNS;
@@ -80,14 +79,14 @@ public class MetadataRetriever implements Closeable {
 
 	static {
 		if (SDK_INT >= VERSION_CODES.R) {
-			CONTENT_COLUMNS = new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.TITLE,
+			CONTENT_COLUMNS = new String[] { MediaStore.MediaColumns._ID, MediaStore.MediaColumns.TITLE,
 					MediaStore.Audio.AudioColumns.DURATION, MediaStore.Audio.AudioColumns.ARTIST,
 					MediaStore.Audio.AudioColumns.ALBUM, MediaStore.Audio.AudioColumns.ALBUM_ARTIST,
-					MediaStore.Audio.AudioColumns.COMPOSER, MediaStore.Audio.AudioColumns.GENRE};
+					MediaStore.Audio.AudioColumns.COMPOSER, MediaStore.Audio.AudioColumns.GENRE };
 		} else {
-			CONTENT_COLUMNS = new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.TITLE,
+			CONTENT_COLUMNS = new String[] { MediaStore.MediaColumns._ID, MediaStore.MediaColumns.TITLE,
 					MediaStore.Audio.AudioColumns.DURATION, MediaStore.Audio.AudioColumns.ARTIST,
-					MediaStore.Audio.AudioColumns.ALBUM};
+					MediaStore.Audio.AudioColumns.ALBUM };
 		}
 
 		CONTENT_COLUMNS_DATA = Arrays.copyOf(CONTENT_COLUMNS, CONTENT_COLUMNS.length + 1);
@@ -105,7 +104,8 @@ public class MetadataRetriever implements Closeable {
 		bitmapCache = FermataApplication.get().getBitmapCache();
 		Context ctx = mgr.lib.getContext();
 		File cache = ctx.getExternalCacheDir();
-		if (cache == null) cache = ctx.getCacheDir();
+		if (cache == null)
+			cache = ctx.getCacheDir();
 		File dbFile = new File(cache, "metadata.db");
 		SQLiteDatabase db = null;
 
@@ -131,7 +131,8 @@ public class MetadataRetriever implements Closeable {
 
 	@Override
 	public void close() {
-		if (db != null) db.close();
+		if (db != null)
+			db.close();
 	}
 
 	public FutureSupplier<MetadataBuilder> getMediaMetadata(PlayableItem item) {
@@ -140,7 +141,8 @@ public class MetadataRetriever implements Closeable {
 
 	private MetadataBuilder load(PlayableItem item) {
 		MetadataBuilder meta = queryMetadata(item);
-		if (meta != null) return meta;
+		if (meta != null)
+			return meta;
 
 		MetaBuilder mb = new MetaBuilder();
 		VirtualResource res = item.getResource();
@@ -166,16 +168,15 @@ public class MetadataRetriever implements Closeable {
 			}
 		}
 
-		int scanner = (mgr.vlcPlayer == null) ? MEDIA_SCANNER_DEFAULT :
-				item.getLib().getPrefs().getMediaScannerPref();
+		int scanner = item.getLib().getPrefs().getMediaScannerPref();
 
 		switch (scanner) {
 			case MEDIA_SCANNER_DEFAULT:
 			case MEDIA_SCANNER_SYSTEM:
-				if (mgr.mediaPlayer.getMediaMetadata(mb, item)) break;
-				if ((scanner == MEDIA_SCANNER_SYSTEM) && mgr.mediaPlayer.getDuration(mb, item)) break;
-			case MEDIA_SCANNER_VLC:
-				if (mgr.vlcPlayer != null) mgr.vlcPlayer.getMediaMetadata(mb, item);
+				if (mgr.mediaPlayer.getMediaMetadata(mb, item))
+					break;
+				if ((scanner == MEDIA_SCANNER_SYSTEM) && mgr.mediaPlayer.getDuration(mb, item))
+					break;
 		}
 
 		if (item.isCacheable()) {
@@ -193,10 +194,12 @@ public class MetadataRetriever implements Closeable {
 		ContentResolver cr = App.get().getContentResolver();
 		Uri uri = item.getResource().getRid().toAndroidUri();
 		Uri mu = toMediaUri(uri);
-		if (mu != null) uri = mu;
+		if (mu != null)
+			uri = mu;
 
 		try (Cursor c = cr.query(uri, CONTENT_COLUMNS, null, null, null)) {
-			if ((c == null) || !c.moveToFirst() || !addFields(c, mb)) return false;
+			if ((c == null) || !c.moveToFirst() || !addFields(c, mb))
+				return false;
 			mb.setImageUri(uri.toString());
 			return true;
 		}
@@ -204,14 +207,15 @@ public class MetadataRetriever implements Closeable {
 
 	private boolean queryMediaStore(PlayableItem item, MetaBuilder mb) {
 		String path = item.getResource().getRid().getPath();
-		if (path == null) return false;
+		if (path == null)
+			return false;
 		String dataQuery;
 		String[] dataArgs;
 		String canonical = null;
 		ContentResolver cr = App.get().getContentResolver();
 		boolean video = item.isVideo();
-		Uri uri = video ? MediaStore.Video.Media.getContentUri("external") :
-				MediaStore.Audio.Media.getContentUri("external");
+		Uri uri = video ? MediaStore.Video.Media.getContentUri("external")
+				: MediaStore.Audio.Media.getContentUri("external");
 
 		try {
 			canonical = new File(path).getCanonicalPath();
@@ -220,16 +224,17 @@ public class MetadataRetriever implements Closeable {
 
 		if (canonical != null) {
 			dataQuery = "_data = ? OR _data = ?";
-			dataArgs = new String[]{canonical, path};
+			dataArgs = new String[] { canonical, path };
 		} else {
 			dataQuery = "_data = ?";
-			dataArgs = new String[]{path};
+			dataArgs = new String[] { path };
 		}
 
 		try (Cursor c = cr.query(uri, CONTENT_COLUMNS, dataQuery, dataArgs, null)) {
 			if ((c != null) && c.moveToFirst()) {
 				Uri img = ContentUris.withAppendedId(uri, c.getLong(0));
-				if (!bitmapCache.isResourceImageAvailable(img) || !addFields(c, mb)) return false;
+				if (!bitmapCache.isResourceImageAvailable(img) || !addFields(c, mb))
+					return false;
 				mb.setImageUri(img.toString());
 				return true;
 			}
@@ -239,24 +244,29 @@ public class MetadataRetriever implements Closeable {
 	}
 
 	private Map<String, MetadataBuilder> queryMediaStore(BrowsableItem item) {
-		if (!(item instanceof FolderItem)) return emptyMap();
+		if (!(item instanceof FolderItem))
+			return emptyMap();
 		VirtualResource r = item.getResource();
 		String path = null;
 
 		if (r instanceof ContentFolder) {
-			if (SDK_INT < VERSION_CODES.Q) return emptyMap();
+			if (SDK_INT < VERSION_CODES.Q)
+				return emptyMap();
 			Uri uri = toMediaUri(r.getRid().toAndroidUri());
-			if (uri == null) return emptyMap();
+			if (uri == null)
+				return emptyMap();
 
 			try (Cursor c = App.get().getContentResolver()
-					.query(uri, new String[]{"_data"}, null, null, null)) {
-				if ((c != null) && c.moveToNext()) path = c.getString(0);
+					.query(uri, new String[] { "_data" }, null, null, null)) {
+				if ((c != null) && c.moveToNext())
+					path = c.getString(0);
 			}
 		} else if (r.getVirtualFileSystem() instanceof LocalFileSystem) {
 			path = item.getResource().getRid().getPath();
 		}
 
-		if (path == null) return emptyMap();
+		if (path == null)
+			return emptyMap();
 		String dataQuery;
 		String[] dataArgs;
 		String canonical = null;
@@ -273,10 +283,10 @@ public class MetadataRetriever implements Closeable {
 
 		if (canonical != null) {
 			dataQuery = "(_data LIKE ? AND NOT _data LIKE ?) OR (_data LIKE ? AND NOT _data LIKE ?)";
-			dataArgs = new String[]{canonical + "/%", canonical + "/%/%", path + "/%", path + "/%/%"};
+			dataArgs = new String[] { canonical + "/%", canonical + "/%/%", path + "/%", path + "/%/%" };
 		} else {
 			dataQuery = "_data LIKE ? AND NOT _data LIKE ?";
-			dataArgs = new String[]{path + "/%", path + "/%/%"};
+			dataArgs = new String[] { path + "/%", path + "/%/%" };
 		}
 
 		id = FileItem.SCHEME + id.substring(FolderItem.SCHEME.length());
@@ -288,18 +298,23 @@ public class MetadataRetriever implements Closeable {
 	}
 
 	private void queryMediaStore(ContentResolver cr, Uri uri, String dataQuery, String[] dataArgs,
-															 String idPref, Map<String, MetadataBuilder> m) {
+			String idPref, Map<String, MetadataBuilder> m) {
 		try (Cursor c = cr.query(uri, CONTENT_COLUMNS_DATA, dataQuery, dataArgs, null)) {
-			if (c == null) return;
+			if (c == null)
+				return;
 			while (c.moveToNext()) {
 				String data = c.getString(CONTENT_COLUMNS_DATA.length - 1);
-				if (data == null) continue;
+				if (data == null)
+					continue;
 				Uri img = ContentUris.withAppendedId(uri, c.getLong(0));
-				if (!bitmapCache.isResourceImageAvailable(img)) continue;
+				if (!bitmapCache.isResourceImageAvailable(img))
+					continue;
 				MetaBuilder mb = new MetaBuilder();
-				if (!addFields(c, mb)) continue;
+				if (!addFields(c, mb))
+					continue;
 				int idx = data.lastIndexOf('/');
-				if (idx < 0) continue;
+				if (idx < 0)
+					continue;
 				String id = idPref + '/' + data.substring(idx + 1);
 				mb.setImageUri(img.toString());
 				m.put(id, mb);
@@ -322,7 +337,8 @@ public class MetadataRetriever implements Closeable {
 	private static boolean addFields(Cursor c, MetaBuilder mb) {
 		try {
 			long dur = c.getLong(2);
-			if (dur <= 0) return false;
+			if (dur <= 0)
+				return false;
 			mb.putLong(MediaMetadata.METADATA_KEY_DURATION, dur);
 		} catch (Exception ex) {
 			Log.d(ex, "Invalid duration: ", c.getString(2));
@@ -330,27 +346,34 @@ public class MetadataRetriever implements Closeable {
 		}
 
 		String s = c.getString(1);
-		if (s != null) mb.putString(MediaMetadataCompat.METADATA_KEY_TITLE, s);
+		if (s != null)
+			mb.putString(MediaMetadataCompat.METADATA_KEY_TITLE, s);
 		s = c.getString(3);
-		if (s != null) mb.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, s);
+		if (s != null)
+			mb.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, s);
 		s = c.getString(4);
-		if (s != null) mb.putString(MediaMetadataCompat.METADATA_KEY_ALBUM, s);
+		if (s != null)
+			mb.putString(MediaMetadataCompat.METADATA_KEY_ALBUM, s);
 
 		if (SDK_INT >= VERSION_CODES.R) {
 			s = c.getString(5);
-			if (s != null) mb.putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST, s);
+			if (s != null)
+				mb.putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST, s);
 			s = c.getString(6);
-			if (s != null) mb.putString(MediaMetadataCompat.METADATA_KEY_COMPOSER, s);
+			if (s != null)
+				mb.putString(MediaMetadataCompat.METADATA_KEY_COMPOSER, s);
 			s = c.getString(7);
-			if (s != null) mb.putString(MediaMetadataCompat.METADATA_KEY_GENRE, s);
+			if (s != null)
+				mb.putString(MediaMetadataCompat.METADATA_KEY_GENRE, s);
 		}
 
 		return true;
 	}
 
 	public FutureSupplier<Map<String, MetadataBuilder>> queryMetadata(String idPattern,
-																																		BrowsableItem br) {
-		if (db == null) return queue.enqueue(() -> queryMediaStore(br));
+			BrowsableItem br) {
+		if (db == null)
+			return queue.enqueue(() -> queryMediaStore(br));
 		return queue.enqueue(() -> {
 			Map<String, MetadataBuilder> m = query(idPattern);
 			return m.isEmpty() ? queryMediaStore(br) : m;
@@ -364,27 +387,34 @@ public class MetadataRetriever implements Closeable {
 	public FutureSupplier<List<String>> queryIds(String pattern, int max) {
 		return (db != null) ? queue.enqueue(() -> {
 			List<String> ids = new ArrayList<>(max);
-			try (Cursor c = db.query(TABLE, new String[]{COL_ID},
+			try (Cursor c = db.query(TABLE, new String[] { COL_ID },
 					COL_TITLE + " = ? OR " + COL_ARTIST + " = ? OR " + COL_ALBUM + " = ? LIMIT " + max,
-					new String[]{pattern, pattern, pattern}, null, null, null)) {
-				while (c.moveToNext()) ids.add(c.getString(0));
+					new String[] { pattern, pattern, pattern }, null, null, null)) {
+				while (c.moveToNext())
+					ids.add(c.getString(0));
 			}
-			if (!ids.isEmpty()) return ids;
+			if (!ids.isEmpty())
+				return ids;
 
-			String[] p = {'%' + pattern + '%'};
-			try (Cursor c = db.query(TABLE, new String[]{COL_ID}, COL_TITLE + " LIKE ?  LIMIT " + max, p,
+			String[] p = { '%' + pattern + '%' };
+			try (Cursor c = db.query(TABLE, new String[] { COL_ID }, COL_TITLE + " LIKE ?  LIMIT " + max, p,
 					null, null, null)) {
-				while (c.moveToNext()) ids.add(c.getString(0));
+				while (c.moveToNext())
+					ids.add(c.getString(0));
 			}
-			if (!ids.isEmpty()) return ids;
-			try (Cursor c = db.query(TABLE, new String[]{COL_ID}, COL_ARTIST + " LIKE ?  LIMIT + " + max,
+			if (!ids.isEmpty())
+				return ids;
+			try (Cursor c = db.query(TABLE, new String[] { COL_ID }, COL_ARTIST + " LIKE ?  LIMIT + " + max,
 					p, null, null, null)) {
-				while (c.moveToNext()) ids.add(c.getString(0));
+				while (c.moveToNext())
+					ids.add(c.getString(0));
 			}
-			if (!ids.isEmpty()) return ids;
-			try (Cursor c = db.query(TABLE, new String[]{COL_ID}, COL_ALBUM + " LIKE ?  LIMIT " + max, p,
+			if (!ids.isEmpty())
+				return ids;
+			try (Cursor c = db.query(TABLE, new String[] { COL_ID }, COL_ALBUM + " LIKE ?  LIMIT " + max, p,
 					null, null, null)) {
-				while (c.moveToNext()) ids.add(c.getString(0));
+				while (c.moveToNext())
+					ids.add(c.getString(0));
 			}
 			return ids.isEmpty() ? emptyList() : ids;
 		}) : completedEmptyList();
@@ -395,12 +425,13 @@ public class MetadataRetriever implements Closeable {
 	}
 
 	public void updateDuration(PlayableItem item, long duration) {
-		if (db == null) return;
+		if (db == null)
+			return;
 
 		queue.enqueue(() -> {
 			ContentValues values = new ContentValues(1);
 			values.put(COL_DURATION, duration);
-			db.update(TABLE, values, COL_ID + " = ?", new String[]{item.getId()});
+			db.update(TABLE, values, COL_ID + " = ?", new String[] { item.getId() });
 			return null;
 		});
 	}
@@ -409,10 +440,11 @@ public class MetadataRetriever implements Closeable {
 		assert db != null;
 
 		try (SharedTextBuilder tb = SharedTextBuilder.get().append(idPattern).append("%/%");
-				 Cursor c = db.query(TABLE, QUERY_COLUMNS, COL_ID_PATTERN,
-						 new String[]{idPattern, tb.toString()}, null, null, null)) {
+				Cursor c = db.query(TABLE, QUERY_COLUMNS, COL_ID_PATTERN,
+						new String[] { idPattern, tb.toString() }, null, null, null)) {
 			int count = c.getCount();
-			if (count == 0) return emptyMap();
+			if (count == 0)
+				return emptyMap();
 
 			Map<String, MetadataBuilder> result = new HashMap<>((int) (count * 1.5f));
 
@@ -434,7 +466,7 @@ public class MetadataRetriever implements Closeable {
 		try {
 			String not = SharedTextBuilder.get().append(idPattern).append("%/%").releaseString();
 			assert db != null;
-			db.delete(TABLE, COL_ID_PATTERN, new String[]{idPattern, not});
+			db.delete(TABLE, COL_ID_PATTERN, new String[] { idPattern, not });
 		} catch (Throwable ex) {
 			Log.d(ex, "Failed to clear media metadata");
 		}
@@ -442,11 +474,13 @@ public class MetadataRetriever implements Closeable {
 	}
 
 	private MetadataBuilder queryMetadata(PlayableItem item) {
-		if (db == null) return null;
+		if (db == null)
+			return null;
 
-		try (Cursor c = db.query(TABLE, QUERY_COLUMNS, COL_ID + " = ?", new String[]{item.getOrigId()},
+		try (Cursor c = db.query(TABLE, QUERY_COLUMNS, COL_ID + " = ?", new String[] { item.getOrigId() },
 				null, null, null); SharedTextBuilder tb = SharedTextBuilder.get()) {
-			if (!c.moveToNext()) return null;
+			if (!c.moveToNext())
+				return null;
 			MetadataBuilder meta = new MetaBuilder();
 			readMetadata(meta, c, tb);
 			return meta;
@@ -458,13 +492,16 @@ public class MetadataRetriever implements Closeable {
 
 	private void readMetadata(MetadataBuilder meta, Cursor c, TextBuilder tb) {
 		String m = c.getString(1);
-		if (m != null) meta.putString(MediaMetadataCompat.METADATA_KEY_TITLE, m);
+		if (m != null)
+			meta.putString(MediaMetadataCompat.METADATA_KEY_TITLE, m);
 
 		m = c.getString(2);
-		if (m != null) meta.putString(MediaMetadataCompat.METADATA_KEY_ALBUM, m.intern());
+		if (m != null)
+			meta.putString(MediaMetadataCompat.METADATA_KEY_ALBUM, m.intern());
 
 		m = c.getString(3);
-		if (m != null) meta.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, m.intern());
+		if (m != null)
+			meta.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, m.intern());
 
 		meta.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, c.getLong(4));
 
@@ -478,7 +515,8 @@ public class MetadataRetriever implements Closeable {
 			} else if ((art.length > 1) && (art[art.length - 1] == ART_URI)) {
 				uri = new String(art, 0, art.length - 1, UTF_8);
 			}
-			if (uri != null) meta.setImageUri(uri);
+			if (uri != null)
+				meta.setImageUri(uri);
 		}
 	}
 
@@ -487,7 +525,8 @@ public class MetadataRetriever implements Closeable {
 	}
 
 	private void insertMetadata(MetaBuilder meta, String id) {
-		if ((db == null) || !meta.durationSet) return;
+		if ((db == null) || !meta.durationSet)
+			return;
 		Bitmap bm = meta.image;
 
 		if (bm != null) {
@@ -517,7 +556,8 @@ public class MetadataRetriever implements Closeable {
 	}
 
 	private void createTable() {
-		if (db == null) return;
+		if (db == null)
+			return;
 
 		PreferenceStore ps = FermataApplication.get().getPreferenceStore();
 		Pref<IntSupplier> version = Pref.i("METADATA_VERSION", 0);
@@ -571,8 +611,10 @@ public class MetadataRetriever implements Closeable {
 
 		@Override
 		public void putBitmap(String key, Bitmap value) {
-			if (MediaMetadata.METADATA_KEY_ALBUM_ART.equals(key)) image = value;
-			else super.putBitmap(key, value);
+			if (MediaMetadata.METADATA_KEY_ALBUM_ART.equals(key))
+				image = value;
+			else
+				super.putBitmap(key, value);
 		}
 
 		void setId(String id) {

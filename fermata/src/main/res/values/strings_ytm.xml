@@ -1,0 +1,6 @@
+<resources>
+    <!-- ... existing strings ... -->
+    <string name="nav_home">Home</string>
+    <string name="nav_explore">Explore</string>
+    <string name="nav_library">Library</string>
+</resources>

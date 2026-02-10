@@ -17,6 +17,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.DimenRes;
@@ -55,6 +56,7 @@ import me.aap.utils.pref.PreferenceStore;
 import me.aap.utils.pref.PreferenceStore.Pref;
 import me.aap.utils.text.SharedTextBuilder;
 import me.aap.utils.text.TextUtils;
+import me.aap.utils.log.Log;
 import me.aap.utils.ui.UiUtils;
 import me.aap.utils.ui.menu.OverlayMenu;
 import me.aap.utils.ui.menu.OverlayMenuItem;
@@ -66,20 +68,26 @@ import me.aap.utils.ui.view.NavBarView;
  */
 public class ControlPanelView extends ConstraintLayout
 		implements MainActivityListener, PreferenceStore.Listener, OverlayMenu.SelectionHandler,
-		GestureListener {
+		GestureListener, FermataServiceUiBinder.Listener {
 	private static final byte MASK_VISIBLE = 1;
 	private static final byte MASK_VIDEO_MODE = 2;
-	private final GestureDetectorCompat gestureDetector;
-	private final ImageView showHideBars;
+	private GestureDetectorCompat gestureDetector;
+	private ImageView showHideBars;
 	@DimenRes
-	private final int size;
+	private int size;
 	@StyleRes
-	private final int textAppearance;
+	private int textAppearance;
 	private PlaybackControlPrefs prefs;
 	private HideTimer hideTimer;
 	private byte mask;
 	private View gestureSource;
-	private TextView playbackTimer;
+	private ImageView albumArt;
+	private TextView cpTitle;
+	private TextView cpSubtitle;
+	private ProgressBar progressBarMini;
+	private MaterialTextView playbackTimer;
+	private FermataServiceUiBinder binder;
+	private final Runnable progressUpdateTask = this::updateProgressBar;
 	private long scrollStamp;
 
 	public ControlPanelView(Context context, AttributeSet attrs) {
@@ -98,11 +106,36 @@ public class ControlPanelView extends ConstraintLayout
 		a.addBroadcastListener(this, ACTIVITY_DESTROY);
 		a.getPrefs().addBroadcastListener(this);
 
-		ViewGroup g = findViewById(R.id.show_hide_bars);
-		showHideBars = (ImageView) g.getChildAt(0);
-		g.setOnClickListener(this::showHideBars);
-		g = findViewById(R.id.control_menu_button);
-		g.setOnClickListener(this::showMenu);
+		try {
+			ViewGroup g = findViewById(R.id.show_hide_bars);
+			if (g != null) {
+				showHideBars = (ImageView) g.getChildAt(0);
+				g.setOnClickListener(this::showHideBars);
+			} else {
+				showHideBars = null;
+			}
+		} catch (Throwable t) {
+			Log.e(t, "Failed to initialize showHideBars in ControlPanelView");
+			showHideBars = null;
+		}
+
+		try {
+			View g = findViewById(R.id.control_menu_button);
+			if (g != null)
+				g.setOnClickListener(this::showMenu);
+		} catch (Throwable t) {
+			Log.e(t, "Failed to initialize controlMenuButton in ControlPanelView");
+		}
+		albumArt = findViewById(R.id.album_art);
+		cpTitle = findViewById(R.id.cp_title);
+		cpSubtitle = findViewById(R.id.cp_subtitle);
+		progressBarMini = findViewById(R.id.seek_bar_mini);
+		View stop = findViewById(R.id.control_stop);
+		if (stop != null)
+			stop.setOnClickListener(v -> {
+				if (binder != null)
+					binder.getMediaSessionCallback().onStop();
+			});
 		setShowHideBarsIcon(a);
 	}
 
@@ -121,22 +154,22 @@ public class ControlPanelView extends ConstraintLayout
 		if (st instanceof Bundle b) {
 			super.onRestoreInstanceState(b.getParcelable("PARENT"));
 			mask = b.getByte("MASK");
-			if (mask != MASK_VISIBLE) super.setVisibility(GONE);
+			if (mask != MASK_VISIBLE)
+				super.setVisibility(GONE);
 		}
 	}
 
 	public void bind(FermataServiceUiBinder b) {
+		this.binder = b;
 		computeSize();
 		prefs = b.getMediaSessionCallback().getPlaybackControlPrefs();
 		b.bindControlPanel(this);
-		b.bindPrevButton(findViewById(R.id.control_prev));
-		b.bindRwButton(findViewById(R.id.control_rw));
 		b.bindPlayPauseButton(findViewById(R.id.control_play_pause));
-		b.bindFfButton(findViewById(R.id.control_ff));
-		b.bindNextButton(findViewById(R.id.control_next));
 		b.bindProgressBar(findViewById(R.id.seek_bar));
 		b.bindProgressTime(findViewById(R.id.seek_time));
 		b.bindProgressTotal(findViewById(R.id.seek_total));
+		b.addBroadcastListener(this);
+		onPlayableChanged(null, b.getCurrentItem());
 		b.bound();
 	}
 
@@ -213,7 +246,8 @@ public class ControlPanelView extends ConstraintLayout
 
 		if (visibility == VISIBLE) {
 			mask |= MASK_VISIBLE;
-			if ((mask & MASK_VIDEO_MODE) != 0) return;
+			if ((mask & MASK_VIDEO_MODE) != 0)
+				return;
 
 			super.setVisibility(VISIBLE);
 
@@ -249,11 +283,13 @@ public class ControlPanelView extends ConstraintLayout
 
 		if (delay == 0) {
 			fb.setVisibility(GONE);
-			if (info != null) info.setVisibility(GONE);
+			if (info != null)
+				info.setVisibility(GONE);
 			super.setVisibility(GONE);
 		} else {
 			fb.setVisibility(VISIBLE);
-			if (info != null) info.setVisibility(VISIBLE);
+			if (info != null)
+				info.setVisibility(VISIBLE);
 			super.setVisibility(VISIBLE);
 			hideTimer = new HideTimer(a, delay, false, info, fb);
 			a.postDelayed(hideTimer, delay);
@@ -326,15 +362,18 @@ public class ControlPanelView extends ConstraintLayout
 
 		if (horizontal) {
 			diff = time - scrollStamp;
-			if (diff < 100) return true;
+			if (diff < 100)
+				return true;
 			scrollStamp = time;
 		} else {
 			diff = time + scrollStamp;
-			if (diff < 100) return true;
+			if (diff < 100)
+				return true;
 			scrollStamp = -time;
 		}
 
-		if (diff > 500) return true;
+		if (diff > 500)
+			return true;
 
 		if (horizontal) {
 			FermataServiceUiBinder b = getActivity().getMediaServiceBinder();
@@ -347,7 +386,8 @@ public class ControlPanelView extends ConstraintLayout
 
 			onVideoSeek();
 		} else if (e2.getPointerCount() == 2) {
-			if (!getActivity().getPrefs().getChangeBrightnessPref()) return true;
+			if (!getActivity().getPrefs().getChangeBrightnessPref())
+				return true;
 			MainActivityDelegate a = getActivity();
 			int br = a.getBrightness();
 			br = (distanceY > 0) ? Math.min(255, br + 10) : Math.max(0, br - 10);
@@ -362,14 +402,16 @@ public class ControlPanelView extends ConstraintLayout
 
 	@Override
 	public boolean onDoubleTap(MotionEvent e) {
-		if (!(gestureSource instanceof VideoView)) return false;
+		if (!(gestureSource instanceof VideoView))
+			return false;
 		getActivity().getMediaServiceBinder().onPlayPauseButtonClick();
 		return true;
 	}
 
 	@Override
 	public boolean onSingleTapConfirmed(MotionEvent e) {
-		if (!(gestureSource instanceof VideoView)) return false;
+		if (!(gestureSource instanceof VideoView))
+			return false;
 		return onTouch((VideoView) gestureSource);
 	}
 
@@ -383,7 +425,8 @@ public class ControlPanelView extends ConstraintLayout
 		}
 
 		int delay = getTouchDelay();
-		if (delay == 0) return false;
+		if (delay == 0)
+			return false;
 
 		View info = video.getVideoInfoView();
 		View fb = a.getFloatingButton();
@@ -391,13 +434,17 @@ public class ControlPanelView extends ConstraintLayout
 		if (getVisibility() == VISIBLE) {
 			super.setVisibility(GONE);
 			fb.setVisibility(GONE);
-			if (a.getPrefs().getSysBarsOnVideoTouchPref()) a.setFullScreen(true);
-			if (info != null) info.setVisibility(GONE);
+			if (a.getPrefs().getSysBarsOnVideoTouchPref())
+				a.setFullScreen(true);
+			if (info != null)
+				info.setVisibility(GONE);
 		} else {
 			super.setVisibility(VISIBLE);
 			fb.setVisibility(VISIBLE);
-			if (a.getPrefs().getSysBarsOnVideoTouchPref()) a.setFullScreen(false);
-			if (info != null) info.setVisibility(VISIBLE);
+			if (a.getPrefs().getSysBarsOnVideoTouchPref())
+				a.setFullScreen(false);
+			if (info != null)
+				info.setVisibility(VISIBLE);
 			clearFocus();
 			hideTimer = new HideTimer(a, delay, false, info, fb);
 			a.postDelayed(hideTimer, delay);
@@ -417,8 +464,10 @@ public class ControlPanelView extends ConstraintLayout
 		VideoView vv = a.getMediaServiceBinder().getMediaSessionCallback().getVideoView();
 
 		if (vv == null) {
-			if (gestureSource instanceof VideoView) vv = (VideoView) gestureSource;
-			else return;
+			if (gestureSource instanceof VideoView)
+				vv = (VideoView) gestureSource;
+			else
+				return;
 		}
 
 		View info = vv.getVideoInfoView();
@@ -426,7 +475,8 @@ public class ControlPanelView extends ConstraintLayout
 		int delay = getSeekDelay();
 		super.setVisibility(VISIBLE);
 		fb.setVisibility(VISIBLE);
-		if (info != null) info.setVisibility(VISIBLE);
+		if (info != null)
+			info.setVisibility(VISIBLE);
 		clearFocus();
 		hideTimer = new HideTimer(a, delay, true, info, fb);
 		a.postDelayed(hideTimer, delay);
@@ -441,9 +491,53 @@ public class ControlPanelView extends ConstraintLayout
 	@Override
 	public void onActivityEvent(MainActivityDelegate a, long e) {
 		if (handleActivityDestroyEvent(a, e)) {
-			a.getMediaServiceBinder().unbind();
+			if (binder != null) {
+				binder.removeBroadcastListener(this);
+				binder.unbind();
+			}
 			a.getPrefs().removeBroadcastListener(this);
 		}
+	}
+
+	@Override
+	public void onPlayableChanged(PlayableItem oldItem, PlayableItem newItem) {
+		if (newItem == null) {
+			cpTitle.setText("");
+			cpSubtitle.setText("");
+			albumArt.setImageDrawable(null);
+			return;
+		}
+
+		cpTitle.setText(newItem.getTitle());
+		cpSubtitle.setText(newItem.getSubtitle());
+		newItem.loadIcon().onSuccess(albumArt::setImageDrawable);
+		startProgressUpdate();
+	}
+
+	private void startProgressUpdate() {
+		removeCallbacks(progressUpdateTask);
+		if (binder != null && binder.isPlaying()) {
+			post(progressUpdateTask);
+		}
+	}
+
+	private void updateProgressBar() {
+		if (binder == null || !binder.isPlaying() || progressBarMini == null)
+			return;
+
+		MediaEngine eng = binder.getCurrentEngine();
+		if (eng != null) {
+			eng.getDuration().main().onSuccess(dur -> {
+				if (dur > 0) {
+					eng.getPosition().main().onSuccess(pos -> {
+						progressBarMini.setMax(1000);
+						progressBarMini.setProgress((int) (pos * 1000 / dur));
+					});
+				}
+			});
+		}
+
+		postDelayed(progressUpdateTask, 1000);
 	}
 
 	@Override
@@ -453,8 +547,10 @@ public class ControlPanelView extends ConstraintLayout
 		if (MainActivityPrefs.hasControlPanelSizePref(a, prefs)) {
 			setSize(a.getPrefs().getControlPanelSizePref(a));
 		} else if ((mask == MASK_VISIBLE) && MainActivityPrefs.hasHideBarsPref(a, prefs)) {
-			if (a.getPrefs().getHideBarsPref(a)) a.setBarsHidden(getVisibility() == VISIBLE);
-			else if (a.isBarsHidden()) a.setBarsHidden(false);
+			if (a.getPrefs().getHideBarsPref(a))
+				a.setBarsHidden(getVisibility() == VISIBLE);
+			else if (a.isBarsHidden())
+				a.setBarsHidden(false);
 			setShowHideBarsIcon(a);
 		}
 	}
@@ -466,21 +562,26 @@ public class ControlPanelView extends ConstraintLayout
 
 	@Override
 	public View focusSearch(View focused, int direction) {
-		if (focused == null) return super.focusSearch(null, direction);
+		if (focused == null)
+			return super.focusSearch(null, direction);
 
 		if (direction == FOCUS_UP) {
 			if (isLine1(focused)) {
 				MainActivityDelegate a = getActivity();
-				if (a.isVideoMode()) return a.getBody().getVideoView();
+				if (a.isVideoMode())
+					return a.getBody().getVideoView();
 				View v = MediaItemListView.focusSearchLast(getContext(), focused);
-				if (v != null) return v;
+				if (v != null)
+					return v;
 			} else {
-				if (!isVisible(findViewById(R.id.seek_bar))) return findViewById(R.id.control_menu_button);
+				if (!isVisible(findViewById(R.id.seek_bar)))
+					return findViewById(R.id.control_menu_button);
 			}
 		} else if (direction == FOCUS_DOWN) {
 			if (!isLine1(focused)) {
 				NavBarView n = getActivity().getNavBar();
-				if (isVisible(n) && n.isBottom()) return n.focusSearch();
+				if (isVisible(n) && n.isBottom())
+					return n.focusSearch();
 			}
 		}
 
@@ -499,14 +600,16 @@ public class ControlPanelView extends ConstraintLayout
 	}
 
 	public void showMenu() {
-		if (isActive()) showMenu(this);
+		if (isActive())
+			showMenu(this);
 	}
 
 	private void showMenu(View v) {
 		MainActivityDelegate a = getActivity();
 		MediaEngine eng = a.getMediaServiceBinder().getCurrentEngine();
 		PlayableItem i = (eng == null) ? null : eng.getSource();
-		if (i != null) new MenuHandler(getMenu(a), i, eng).show();
+		if (i != null)
+			new MenuHandler(getMenu(a), i, eng).show();
 	}
 
 	private OverlayMenu getMenu(MainActivityDelegate a) {
@@ -587,8 +690,7 @@ public class ControlPanelView extends ConstraintLayout
 		@Override
 		protected boolean addAudioMenu() {
 			PlayableItem pi = engine.getSource();
-			return (pi != null) && pi.isVideo() && ((engine.getAudioStreamInfo().size() > 1) ||
-					getActivity().getMediaSessionCallback().getEngineManager().isVlcPlayerSupported());
+			return (pi != null) && pi.isVideo() && (engine.getAudioStreamInfo().size() > 1);
 		}
 
 		@Override
@@ -602,7 +704,8 @@ public class ControlPanelView extends ConstraintLayout
 
 		private void buildAudioStreamMenu(OverlayMenu.Builder b) {
 			MediaEngine eng = getActivity().getMediaSessionCallback().getEngine();
-			if (eng == null) return;
+			if (eng == null)
+				return;
 			AudioStreamInfo ai = eng.getCurrentAudioStreamInfo();
 			List<AudioStreamInfo> streams = eng.getAudioStreamInfo();
 			b.setSelectionHandler(this::audioStreamSelected);
@@ -655,7 +758,8 @@ public class ControlPanelView extends ConstraintLayout
 		}
 
 		private boolean subtitleStreamSelected(OverlayMenuItem i) {
-			if (getActivity().getMediaSessionCallback().getEngine() != engine) return true;
+			if (getActivity().getMediaSessionCallback().getEngine() != engine)
+				return true;
 
 			SubtitleStreamInfo si = i.getData();
 			PlayableItem pi = (PlayableItem) getItem();
@@ -673,13 +777,14 @@ public class ControlPanelView extends ConstraintLayout
 
 		@Override
 		protected void buildPlayableMenu(MainActivityDelegate a, OverlayMenu.Builder b,
-																		 PlayableItem pi,
-																		 boolean initRepeat) {
+				PlayableItem pi,
+				boolean initRepeat) {
 			super.buildPlayableMenu(a, b, pi, false);
 
 			BrowsableItemPrefs p = pi.getParent().getPrefs();
 			MediaEngine eng = a.getMediaSessionCallback().getEngine();
-			if (eng == null) return;
+			if (eng == null)
+				return;
 
 			boolean stream = (pi.isStream());
 			eng.contributeToMenu(b);
@@ -786,8 +891,7 @@ public class ControlPanelView extends ConstraintLayout
 		private class PrefStore extends BasicPreferenceStore {
 			final Pref<BooleanSupplier> TRACK = Pref.b("TRACK", false);
 			final Pref<BooleanSupplier> FOLDER = Pref.b("FOLDER", false);
-			private final MediaSessionCallback cb =
-					getActivity().getMediaServiceBinder().getMediaSessionCallback();
+			private final MediaSessionCallback cb = getActivity().getMediaServiceBinder().getMediaSessionCallback();
 			private final Item item;
 
 			PrefStore(Item item) {
@@ -822,8 +926,9 @@ public class ControlPanelView extends ConstraintLayout
 						edit.setBooleanPref(FOLDER, false);
 					}
 
-					if (!set) edit.setFloatPref(MediaPrefs.SPEED,
-							cb.getPlaybackControlPrefs().getFloatPref(MediaPrefs.SPEED));
+					if (!set)
+						edit.setFloatPref(MediaPrefs.SPEED,
+								cb.getPlaybackControlPrefs().getFloatPref(MediaPrefs.SPEED));
 				}
 			}
 
@@ -855,10 +960,12 @@ public class ControlPanelView extends ConstraintLayout
 
 			@Override
 			public void applyFloatPref(boolean removeDefault, Pref<? extends DoubleSupplier> pref,
-																 float value) {
-				if (value == 0.0f) value = 0.1f;
+					float value) {
+				if (value == 0.0f)
+					value = 0.1f;
 				super.applyFloatPref(removeDefault, pref, value);
-				if (cb.isPlaying()) cb.onSetPlaybackSpeed(value);
+				if (cb.isPlaying())
+					cb.onSetPlaybackSpeed(value);
 			}
 		}
 	}
@@ -918,7 +1025,8 @@ public class ControlPanelView extends ConstraintLayout
 		@Override
 		public void menuClosed(OverlayMenu menu) {
 			closed = true;
-			if (!changed) return;
+			if (!changed)
+				return;
 			int h = getIntPref(H);
 			int m = getIntPref(M);
 			activity.getMediaSessionCallback().setPlaybackTimer(h * 3600 + m * 60);
@@ -927,7 +1035,8 @@ public class ControlPanelView extends ConstraintLayout
 
 		private void startTimer() {
 			activity.postDelayed(() -> {
-				if (!closed) getMenu(getActivity()).hide();
+				if (!closed)
+					getMenu(getActivity()).hide();
 			}, 60000);
 		}
 	}
@@ -959,7 +1068,8 @@ public class ControlPanelView extends ConstraintLayout
 
 		@Override
 		public void run() {
-			if ((hideTimer != this) || ((mask & MASK_VIDEO_MODE) == 0)) return;
+			if ((hideTimer != this) || ((mask & MASK_VIDEO_MODE) == 0))
+				return;
 
 			if (ControlPanelView.this.hasFocus()) {
 				hideTimer = new HideTimer(activity, delay, seekMode, views);
@@ -967,11 +1077,13 @@ public class ControlPanelView extends ConstraintLayout
 				return;
 			}
 
-			if (activity.getPrefs().getSysBarsOnVideoTouchPref()) activity.setFullScreen(true);
+			if (activity.getPrefs().getSysBarsOnVideoTouchPref())
+				activity.setFullScreen(true);
 			ControlPanelView.super.setVisibility(GONE);
 
 			for (View v : views) {
-				if (v != null) v.setVisibility(GONE);
+				if (v != null)
+					v.setVisibility(GONE);
 			}
 		}
 	}

@@ -106,7 +106,8 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 		FutureSupplier<Void> r;
 		MainActivityDelegate a = getMainActivity();
 
-		if (canDelete()) builder.addItem(R.id.delete, R.drawable.delete, R.string.delete);
+		if (canDelete())
+			builder.addItem(R.id.delete, R.drawable.delete, R.string.delete);
 
 		if (item instanceof PlayableItem) {
 			buildPlayableMenu(a, builder, (PlayableItem) item, true);
@@ -119,22 +120,24 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 
 		return r.onSuccess(v -> {
 			MediaLibFragment f = a.getActiveMediaLibFragment();
-			if (f != null) f.contributeToContextMenu(builder, this);
+			if (f != null)
+				f.contributeToContextMenu(builder, this);
 			builder.setSelectionHandler(this);
 		});
 	}
 
 	private boolean canDelete() {
-		if (view == null) return false;
+		if (view == null)
+			return false;
 		BrowsableItem p = item.getParent();
-		if ((p == null) || (p.getParent() == null)) return false;
-		return (
-				((item instanceof FileItem) || (item instanceof FolderItem) || (item instanceof M3uItem)) &&
-						item.getResource().canDelete());
+		if ((p == null) || (p.getParent() == null))
+			return false;
+		return (((item instanceof FileItem) || (item instanceof FolderItem) || (item instanceof M3uItem)) &&
+				item.getResource().canDelete());
 	}
 
 	protected void buildPlayableMenu(MainActivityDelegate a, OverlayMenu.Builder b, PlayableItem pi,
-																	 boolean initRepeat) {
+			boolean initRepeat) {
 		if (!pi.isExternal()) {
 			if (initRepeat) {
 				if (pi.isRepeatItemEnabled()) {
@@ -183,7 +186,7 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 
 		if (addMediaEngMenu()) {
 			b.addItem(R.id.preferred_media_engine, R.drawable.media_engine,
-							R.string.preferred_media_engine)
+					R.string.preferred_media_engine)
 					.setSubmenu(pi.isVideo() ? this::buildVideoEngMenu : this::buildAudioEngMenu);
 		}
 	}
@@ -210,7 +213,7 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 
 		b.addItem(R.id.video_scaling, R.string.video_scaling).setSubmenu(this::buildVideoScalingMenu);
 
-		if (getMainActivity().getMediaSessionCallback().getEngineManager().isVlcPlayerSupported()) {
+		if (getMainActivity().getMediaSessionCallback().getEngineManager().isExoPlayerSupported()) {
 			b.addItem(R.id.hw_accel, R.string.hw_accel).setSubmenu(this::buildHwAccelMenu);
 		}
 
@@ -221,17 +224,10 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 	}
 
 	protected boolean addAudioMenu() {
-		return item.getLib().getPrefs().getVlcEnabledPref();
+		return false;
 	}
 
 	protected void buildAudioMenu(OverlayMenu.Builder b) {
-		if (!getMainActivity().getMediaSessionCallback().getEngineManager().isVlcPlayerSupported())
-			return;
-		PreferenceSet prefSet = new PreferenceSet();
-		Pref<IntSupplier> pref = FermataApplication.get().isConnectedToAuto()
-				? MediaLibPrefs.AUDIO_DELAY_AA : MediaLibPrefs.AUDIO_DELAY;
-		addDelayPrefs(prefSet, item.getPrefs(), pref, R.string.audio_delay, null);
-		prefSet.addToMenu(b, true);
 	}
 
 	protected boolean addSubtitlesMenu() {
@@ -253,7 +249,7 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 	}
 
 	private FutureSupplier<Void> buildBrowsableMenu(MainActivityDelegate a, OverlayMenu.Builder b,
-																									BrowsableItem bi) {
+			BrowsableItem bi) {
 		return bi.getUnsortedChildren().main().then(children -> {
 			var hasAudio = false;
 			var hasVideo = false;
@@ -266,12 +262,15 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 					var prefs = pi.getPrefs();
 					if (pi.isVideo()) {
 						hasVideo = true;
-						if (prefs.getWatchedPref()) hasWatched = true;
+						if (prefs.getWatchedPref())
+							hasWatched = true;
 					} else {
 						hasAudio = true;
 					}
-					if (prefs.hasPref(BOOKMARKS)) hasBookmarks = true;
-					if (hasAudio && hasVideo && hasWatched && hasBookmarks) break;
+					if (prefs.hasPref(BOOKMARKS))
+						hasBookmarks = true;
+					if (hasAudio && hasVideo && hasWatched && hasBookmarks)
+						break;
 				}
 			}
 
@@ -301,12 +300,13 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 				b.addItem(R.id.video, R.drawable.video, R.string.video).setSubmenu(sb -> {
 					sb.setSelectionHandler(this);
 					sb.addItem(R.id.mark_watched, R.string.mark_watched);
-					if (addUnwatched) sb.addItem(R.id.mark_unwatched, R.string.mark_unwatched);
+					if (addUnwatched)
+						sb.addItem(R.id.mark_unwatched, R.string.mark_unwatched);
 					sb.addItem(R.id.audio_prefs, R.string.audio).setSubmenu(this::buildAudioPrefsMenu);
 					sb.addItem(R.id.video_scaling, R.string.video_scaling)
 							.setSubmenu(this::buildVideoScalingMenu);
 
-					if (a.getMediaSessionCallback().getEngineManager().isVlcPlayerSupported()) {
+					if (a.getMediaSessionCallback().getEngineManager().isExoPlayerSupported()) {
 						sb.addItem(R.id.hw_accel, R.string.hw_accel)
 								.setSubmenu(this::buildHwAccelMenu);
 					}
@@ -334,12 +334,12 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 				if (hasAudio && hasVideo) {
 					b.addItem(R.id.preferred_media_engine, R.drawable.media_engine,
 							R.string.preferred_media_engine).setSubmenu(sb -> {
-						sb.setSelectionHandler(this);
-						sb.addItem(R.id.preferred_audio_engine, R.string.preferred_audio_engine)
-								.setSubmenu(this::buildAudioEngMenu);
-						sb.addItem(R.id.preferred_video_engine, R.string.preferred_video_engine)
-								.setSubmenu(this::buildVideoEngMenu);
-					});
+								sb.setSelectionHandler(this);
+								sb.addItem(R.id.preferred_audio_engine, R.string.preferred_audio_engine)
+										.setSubmenu(this::buildAudioEngMenu);
+								sb.addItem(R.id.preferred_video_engine, R.string.preferred_video_engine)
+										.setSubmenu(this::buildVideoEngMenu);
+							});
 				} else if (hasAudio) {
 					b.addItem(R.id.preferred_audio_engine, R.drawable.media_engine,
 							R.string.preferred_audio_engine).setSubmenu(this::buildAudioEngMenu);
@@ -364,16 +364,13 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 	private void buildMediaEngMenu(OverlayMenu.Builder b, boolean video) {
 		MediaPrefs prefs = item.getPrefs();
 		MediaEngineManager mgr = getMainActivity().getMediaSessionCallback().getEngineManager();
-		Pref<IntSupplier> p = video ? MediaPrefs.VIDEO_ENGINE.withInheritance(false) :
-				MediaPrefs.AUDIO_ENGINE.withInheritance(false);
-		int eng =
-				prefs.hasPref(p) ? (video ? prefs.getVideoEnginePref() : prefs.getAudioEnginePref()) : -1;
+		Pref<IntSupplier> p = video ? MediaPrefs.VIDEO_ENGINE.withInheritance(false)
+				: MediaPrefs.AUDIO_ENGINE.withInheritance(false);
+		int eng = prefs.hasPref(p) ? (video ? prefs.getVideoEnginePref() : prefs.getAudioEnginePref()) : -1;
 		b.setSelectionHandler(this);
 
-		OverlayMenuItem i =
-				b.addItem(video ? R.id.preferred_video_engine_default :
-								R.id.preferred_audio_engine_default,
-						null, R.string.by_default);
+		OverlayMenuItem i = b.addItem(video ? R.id.preferred_video_engine_default : R.id.preferred_audio_engine_default,
+				null, R.string.by_default);
 		i.setChecked(eng == -1, true);
 		i = b.addItem(video ? R.id.preferred_video_engine_mp : R.id.preferred_audio_engine_mp, null,
 				R.string.engine_mp_name);
@@ -384,13 +381,6 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 					null,
 					R.string.engine_exo_name);
 			i.setChecked(eng == MediaPrefs.MEDIA_ENG_EXO, true);
-		}
-
-		if (mgr.isVlcPlayerSupported()) {
-			i = b.addItem(video ? R.id.preferred_video_engine_vlc : R.id.preferred_audio_engine_vlc,
-					null,
-					R.string.engine_vlc_name);
-			i.setChecked(eng == MediaPrefs.MEDIA_ENG_VLC, true);
 		}
 	}
 
@@ -446,8 +436,7 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 	}
 
 	private void buildVideoScalingMenu(OverlayMenu.Builder b) {
-		int scale =
-				item.getPrefs().hasPref(VIDEO_SCALE, false) ? item.getPrefs().getVideoScalePref() : -1;
+		int scale = item.getPrefs().hasPref(VIDEO_SCALE, false) ? item.getPrefs().getVideoScalePref() : -1;
 		b.addItem(R.id.video_scaling_default, null, R.string.by_default).setChecked(scale == -1, true);
 		b.addItem(R.id.video_scaling_best, null, R.string.video_scaling_best)
 				.setChecked(scale == SCALE_BEST, true);
@@ -521,18 +510,21 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 			if (item instanceof PlayableItem) {
 				item.getLib().getFavorites().addItem((PlayableItem) item);
 				f = getMainActivity().getMediaLibFragment(R.id.favorites_fragment);
-				if (f != null) f.reload();
+				if (f != null)
+					f.reload();
 			} else if (item instanceof BrowsableItem) {
 				((BrowsableItem) item).getPlayableChildren(true).main().onSuccess(list -> {
 					item.getLib().getFavorites().addItems(list);
 					MediaLibFragment mf = getMainActivity().getMediaLibFragment(R.id.favorites_fragment);
-					if (mf != null) mf.reload();
+					if (mf != null)
+						mf.reload();
 				});
 			}
 		} else if (id == R.id.favorites_remove) {
 			item.getLib().getFavorites().removeItem((PlayableItem) item);
 			f = getMainActivity().getMediaLibFragment(R.id.favorites_fragment);
-			if (f != null) f.reload();
+			if (f != null)
+				f.reload();
 		} else if (id == R.id.playlist_remove_item) {
 			getMainActivity().removeFromPlaylist((Playlist) requireNonNull(item.getParent()),
 					Collections.singletonList((PlayableItem) item));
@@ -559,7 +551,8 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 
 			if (item instanceof BrowsableItem br) {
 				br.getPlayableChildren(false).onSuccess(list -> {
-					for (var pi : list) pi.getPrefs().setWatchedPref(watched);
+					for (var pi : list)
+						pi.getPrefs().setWatchedPref(watched);
 				});
 			} else if (item instanceof PlayableItem pi) {
 				pi.getPrefs().setWatchedPref(watched);
@@ -569,25 +562,19 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 				view.refresh();
 			} else {
 				ActivityFragment mf = getMainActivity().getActiveFragment();
-				if (mf instanceof MediaLibFragment) ((MediaLibFragment) mf).getAdapter().refresh();
+				if (mf instanceof MediaLibFragment)
+					((MediaLibFragment) mf).getAdapter().refresh();
 			}
 		} else if (id == R.id.preferred_audio_engine_default ||
 				id == R.id.preferred_video_engine_default) {
 			item.getPrefs().removePref(
-					(id == R.id.preferred_audio_engine_default) ? MediaPrefs.AUDIO_ENGINE :
-							MediaPrefs.VIDEO_ENGINE);
+					(id == R.id.preferred_audio_engine_default) ? MediaPrefs.AUDIO_ENGINE : MediaPrefs.VIDEO_ENGINE);
 		} else if (id == R.id.preferred_audio_engine_mp) {
 			item.getPrefs().setAudioEnginePref(MediaPrefs.MEDIA_ENG_MP);
 		} else if (id == R.id.preferred_video_engine_mp) {
 			item.getPrefs().setVideoEnginePref(MediaPrefs.MEDIA_ENG_MP);
-		} else if (id == R.id.preferred_audio_engine_exo) {
-			item.getPrefs().setAudioEnginePref(MediaPrefs.MEDIA_ENG_EXO);
 		} else if (id == R.id.preferred_video_engine_exo) {
 			item.getPrefs().setVideoEnginePref(MediaPrefs.MEDIA_ENG_EXO);
-		} else if (id == R.id.preferred_audio_engine_vlc) {
-			item.getPrefs().setAudioEnginePref(MediaPrefs.MEDIA_ENG_VLC);
-		} else if (id == R.id.preferred_video_engine_vlc) {
-			item.getPrefs().setVideoEnginePref(MediaPrefs.MEDIA_ENG_VLC);
 		} else if (id == R.id.video_scaling_default) {
 			item.getPrefs().removePref(VIDEO_SCALE);
 		} else if (id == R.id.video_scaling_best) {
@@ -611,22 +598,24 @@ public class MediaItemMenuHandler implements OverlayMenu.SelectionHandler {
 		} else if (id == R.id.delete) {
 			UiUtils.showQuestion(getContext(), R.string.delete_file_title, R.string.delete_file_question,
 					R.drawable.delete).onSuccess(v -> {
-				VirtualResource res = item.getResource();
-				res.delete().main().onCompletion((deleted, err) -> {
-					if ((err == null) && deleted) {
-						MainActivityDelegate a = getMainActivity();
-						MediaEngine eng = getEngine();
-						if ((eng != null) && item.equals(eng.getSource()))
-							a.getMediaSessionCallback().onSkipToNext();
-						ActivityFragment mf = a.getActiveFragment();
-						if (mf instanceof MediaLibFragment) ((MediaLibFragment) mf).refresh();
-						return;
-					}
-					if (err != null) Log.e(err, "Failed to delete file " + res);
-					Context ctx = getContext();
-					UiUtils.showAlert(ctx, ctx.getString(R.string.delete_file_failed, res.getName()));
-				});
-			});
+						VirtualResource res = item.getResource();
+						res.delete().main().onCompletion((deleted, err) -> {
+							if ((err == null) && deleted) {
+								MainActivityDelegate a = getMainActivity();
+								MediaEngine eng = getEngine();
+								if ((eng != null) && item.equals(eng.getSource()))
+									a.getMediaSessionCallback().onSkipToNext();
+								ActivityFragment mf = a.getActiveFragment();
+								if (mf instanceof MediaLibFragment)
+									((MediaLibFragment) mf).refresh();
+								return;
+							}
+							if (err != null)
+								Log.e(err, "Failed to delete file " + res);
+							Context ctx = getContext();
+							UiUtils.showAlert(ctx, ctx.getString(R.string.delete_file_failed, res.getName()));
+						});
+					});
 		}
 
 		return true;

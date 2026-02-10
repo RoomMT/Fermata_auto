@@ -84,7 +84,12 @@ public class MainActivity extends SplitCompatActivityBase
 			assert service == null;
 			service = c;
 			return new MainActivityDelegate(a, service.createBinder());
-		}).onFailure(err -> showAlert(getContext(), String.valueOf(err)));
+		}).onFailure(err -> {
+			Log.e(err, "Failed to connect to FermataMediaService");
+			android.widget.Toast.makeText(a.getContext(), "Service Connection Failed: " + err.getMessage(),
+					android.widget.Toast.LENGTH_LONG).show();
+			showAlert(getContext(), String.valueOf(err));
+		});
 	}
 
 	@Override
@@ -97,7 +102,8 @@ public class MainActivity extends SplitCompatActivityBase
 	public void finish() {
 		FermataMediaServiceConnection s = service;
 		service = null;
-		if (s != null) s.disconnect();
+		if (s != null)
+			s.disconnect();
 		super.finish();
 	}
 
@@ -118,7 +124,7 @@ public class MainActivity extends SplitCompatActivityBase
 	@Override
 	protected void onResume() {
 		super.onResume();
-		 activeInstance = this;
+		activeInstance = this;
 	}
 
 	@Override
@@ -153,7 +159,8 @@ public class MainActivity extends SplitCompatActivityBase
 	public boolean onGenericMotionEvent(MotionEvent event) {
 		if (((event.getSource() & SOURCE_CLASS_POINTER) != 0) && (event.getAction() == ACTION_SCROLL)) {
 			AudioManager amgr = (AudioManager) getContext().getSystemService(AUDIO_SERVICE);
-			if (amgr == null) return false;
+			if (amgr == null)
+				return false;
 			float v = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
 			amgr.adjustStreamVolume(STREAM_MUSIC, (v > 0) ? ADJUST_RAISE : ADJUST_LOWER, FLAG_SHOW_UI);
 			return true;
@@ -163,10 +170,12 @@ public class MainActivity extends SplitCompatActivityBase
 	}
 
 	public FutureSupplier<?> uninstallControl() {
-		if (!BuildConfig.AUTO) return completedVoid();
+		if (!BuildConfig.AUTO)
+			return completedVoid();
 
 		var pkgName = "me.aap.fermata.auto.control.dear.google.why";
-		if (!isPackageInstalled(this, pkgName)) return completedVoid();
+		if (!isPackageInstalled(this, pkgName))
+			return completedVoid();
 
 		return startActivityForResult(() -> {
 			var i = new Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.parse("package:" + pkgName));
@@ -176,7 +185,8 @@ public class MainActivity extends SplitCompatActivityBase
 	}
 
 	public void checkUpdates() {
-		if (!BuildConfig.AUTO) return;
+		if (!BuildConfig.AUTO)
+			return;
 
 		PreferenceStore ps = FermataApplication.get().getPreferenceStore();
 		Pref<Supplier<String[]>> deletePref = sa("DELETE_ON_STARTUP", new String[0]);
@@ -185,15 +195,17 @@ public class MainActivity extends SplitCompatActivityBase
 		if (delete.length != 0) {
 			App.get().getScheduler().schedule(() -> {
 				for (String f : delete) {
-					//noinspection ResultOfMethodCallIgnored
+					// noinspection ResultOfMethodCallIgnored
 					new File(f).delete();
 				}
 
 				synchronized (this) {
 					List<String> l = new ArrayList<>(Arrays.asList(ps.getStringArrayPref(deletePref)));
 					l.removeAll(Arrays.asList(delete));
-					if (l.isEmpty()) ps.removePref(deletePref);
-					else ps.applyStringArrayPref(deletePref, l.toArray(new String[0]));
+					if (l.isEmpty())
+						ps.removePref(deletePref);
+					else
+						ps.applyStringArrayPref(deletePref, l.toArray(new String[0]));
 				}
 			}, 1, MINUTES);
 		}
@@ -217,7 +229,8 @@ public class MainActivity extends SplitCompatActivityBase
 					String[] res = new String[2];
 					res[0] = tag;
 					int idx = tag.indexOf('(');
-					if (idx != -1) tag = tag.substring(0, idx);
+					if (idx != -1)
+						tag = tag.substring(0, idx);
 
 					if (NaturalOrderComparator.compareNatural(BuildConfig.VERSION_NAME, tag.trim()) < 0) {
 						Log.i("New version is available: ", res[0]);
@@ -227,7 +240,8 @@ public class MainActivity extends SplitCompatActivityBase
 						for (int i = 0, n = assets.length(); i < n; i++) {
 							JSONObject asset = assets.getJSONObject(i);
 							String name = asset.getString("name");
-							if (name.endsWith(ext)) res[1] = asset.getString("browser_download_url");
+							if (name.endsWith(ext))
+								res[1] = asset.getString("browser_download_url");
 						}
 
 						return (res[1] != null) ? completed(res) : completedNull();
@@ -240,10 +254,11 @@ public class MainActivity extends SplitCompatActivityBase
 					return failed(ex);
 				}
 			}).main().onSuccess(res -> {
-				if (res == null) return;
+				if (res == null)
+					return;
 				UiUtils.showQuestion(getContext(), getString(R.string.update),
-								getString(R.string.update_question, res[0]),
-								AppCompatResources.getDrawable(getContext(), R.drawable.notification))
+						getString(R.string.update_question, res[0]),
+						AppCompatResources.getDrawable(getContext(), R.drawable.notification))
 						.onSuccess(r -> update(res[1], ps, deletePref));
 			});
 
@@ -252,8 +267,9 @@ public class MainActivity extends SplitCompatActivityBase
 	}
 
 	private FutureSupplier<Void> update(String uri, PreferenceStore ps,
-																			Pref<Supplier<String[]>> deletePref) {
-		if (!BuildConfig.AUTO) return completedVoid();
+			Pref<Supplier<String[]>> deletePref) {
+		if (!BuildConfig.AUTO)
+			return completedVoid();
 		try {
 			File tmp;
 			File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -261,14 +277,14 @@ public class MainActivity extends SplitCompatActivityBase
 			if ((tmp = createTempFile(dir)) == null) {
 				App app = App.get();
 				File cache = app.getExternalCacheDir();
-				if (cache == null) cache = app.getCacheDir();
+				if (cache == null)
+					cache = app.getCacheDir();
 				dir = new File(cache, "updates");
-				//noinspection ResultOfMethodCallIgnored
+				// noinspection ResultOfMethodCallIgnored
 				dir.mkdirs();
 				if ((tmp = createTempFile(dir)) == null) {
 					App.get()
-							.run(() -> showAlert(this, "Update failed - unable to create a temporary " + "file"
-							));
+							.run(() -> showAlert(this, "Update failed - unable to create a temporary " + "file"));
 					return completedVoid();
 				}
 			}
@@ -283,9 +299,10 @@ public class MainActivity extends SplitCompatActivityBase
 
 			HttpFileDownloader d = createDownloader(getContext(), uri);
 			return d.download(uri, f).then(s -> {
-				Uri u = (SDK_INT >= Build.VERSION_CODES.N) ?
-						FileProvider.getUriForFile(getApplicationContext(), getPackageName() + ".FileProvider",
-								f) : Uri.fromFile(f);
+				Uri u = (SDK_INT >= Build.VERSION_CODES.N)
+						? FileProvider.getUriForFile(getApplicationContext(), getPackageName() + ".FileProvider",
+								f)
+						: Uri.fromFile(f);
 
 				try {
 					installApk(u, true);
@@ -309,7 +326,8 @@ public class MainActivity extends SplitCompatActivityBase
 
 	private static File createTempFile(File dir) {
 		try {
-			if (dir == null) return null;
+			if (dir == null)
+				return null;
 			return File.createTempFile("Fermata-", ".apk", dir);
 		} catch (Exception ex) {
 			Log.e(ex, "Failed to create a temporary file in the directory ", dir);
