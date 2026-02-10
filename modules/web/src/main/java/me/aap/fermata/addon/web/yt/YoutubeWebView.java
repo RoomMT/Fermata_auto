@@ -508,5 +508,40 @@ public class YoutubeWebView extends FermataWebView {
     FutureSupplier<String> getVideoTitle() { Promise<String> p = new Promise<>(); evaluateJavascript("document.title", p::complete); return p; }
     void setScale(YoutubeAddon.VideoScale scale) { getAddon().setScale(scale); String p = scale.prefName(); exec("javascript:document.querySelectorAll('video').forEach(v=> v.setAttribute('style', 'object-fit:" + p + "'));"); }
     private void cleanupEngine() { if (engine != null) { try { MainActivityDelegate a = MainActivityDelegate.get(getContext()); if (a != null && a.getMediaSessionCallback() != null && a.getMediaSessionCallback().getEngine() == engine) a.getMediaSessionCallback().setEngine(null); } catch (Exception e) {} engine = null; } }
-    @Override public void destroy() { mainHandler.removeCallbacks(heartbeat); signalHandler.removeCallbacks(signalUpdater); cancelFullScreenRequest(); cleanupEngine(); setLayerType(View.LAYER_TYPE_NONE, null); loadUrl("about:blank"); if (activeInstance == this) activeInstance = null; super.destroy(); }
+    @Override
+    public void destroy() {
+        Log.d("FERMATA_YT", "YoutubeWebView: FULL CLEANUP - Destroying instance");
+
+        // 1. Cancel all Handler Loops (heartbeat, signalUpdater, fullScreen)
+        if (mainHandler != null) mainHandler.removeCallbacksAndMessages(null);
+        if (signalHandler != null) signalHandler.removeCallbacksAndMessages(null);
+        if (fullScreenHandler != null) fullScreenHandler.removeCallbacksAndMessages(null);
+
+        // 2. Clear Runnable references
+        cancelFullScreenRequest();
+
+        // 3. Cleanup Engine & Overlay View
+        cleanupEngine();
+        if (overlayView != null) {
+            try {
+                if (overlayView.getParent() != null) {
+                    ((ViewGroup) overlayView.getParent()).removeView(overlayView);
+                }
+            } catch (Exception e) {}
+            overlayView = null;
+        }
+
+        // 4. Release WebView resources
+        setLayerType(View.LAYER_TYPE_NONE, null);
+        try {
+            stopLoading();
+            loadUrl("about:blank");
+        } catch (Exception e) {}
+
+        if (activeInstance == this) {
+            activeInstance = null;
+        }
+
+        super.destroy();
+    }
 }

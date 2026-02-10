@@ -1,0 +1,525 @@
+package me.aap.fermata.addon.web.yt;
+
+import static me.aap.fermata.addon.web.yt.YoutubeJsInterface.JS_ERR;
+import static me.aap.fermata.addon.web.yt.YoutubeJsInterface.JS_EVENT;
+import static me.aap.fermata.addon.web.yt.YoutubeJsInterface.JS_VIDEO_ENDED;
+import static me.aap.fermata.addon.web.yt.YoutubeJsInterface.JS_VIDEO_FOUND;
+import static me.aap.fermata.addon.web.yt.YoutubeJsInterface.JS_VIDEO_PAUSED;
+import static me.aap.fermata.addon.web.yt.YoutubeJsInterface.JS_VIDEO_PLAYING;
+import static me.aap.fermata.addon.web.yt.YoutubeJsInterface.JS_VIDEO_QUALITIES;
+
+import android.content.Context;
+import android.util.AttributeSet;
+import android.webkit.CookieManager;
+
+import androidx.annotation.NonNull;
+
+import me.aap.fermata.BuildConfig;
+import me.aap.fermata.addon.web.FermataChromeClient;
+import me.aap.fermata.addon.web.FermataJsInterface;
+import me.aap.fermata.addon.web.FermataWebView;
+import me.aap.fermata.media.service.MediaSessionCallback;
+import me.aap.fermata.ui.activity.MainActivityDelegate;
+import me.aap.utils.async.FutureSupplier;
+import me.aap.utils.async.Promise;
+import me.aap.utils.log.Log;
+import android.webkit.WebSettings;
+import android.view.View;
+import android.annotation.SuppressLint;
+
+/**
+ * @author Andrey Pavlenko
+ */
+public class YoutubeWebView extends FermataWebView {
+	private YoutubeJsInterface js;
+	private static final String PLAYER_ID = "movie_player";
+	private static final String OPT_VERSION = "2025.11.29_MODULAR_FINAL";
+	public YoutubeWebView(@NonNull Context context) {
+			super(context);
+			initSettings(); // Gọi hàm cài đặt khi khởi tạo
+		}
+
+		public YoutubeWebView(@NonNull Context context, AttributeSet attrs) {
+			super(context, attrs);
+			initSettings(); // Gọi hàm cài đặt khi khởi tạo từ layout XML
+		}
+
+		public YoutubeWebView(@NonNull Context context, AttributeSet attrs, int defStyleAttr) {
+			super(context, attrs, defStyleAttr);
+			initSettings(); // Gọi hàm cài đặt đầy đủ
+		}
+	@SuppressLint("SetJavaScriptEnabled")
+    private void initSettings() {
+        setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        WebSettings s = getSettings();
+        
+        s.setJavaScriptEnabled(true);
+        s.setMediaPlaybackRequiresUserGesture(false);
+        s.setDomStorageEnabled(true);
+        s.setDatabaseEnabled(true);
+        s.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK); // Lưu ý: Ở dưới bạn lại set LOAD_NO_CACHE, hãy chọn 1 cái thôi
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        s.setLoadWithOverviewMode(true);
+        s.setUseWideViewPort(true);
+        s.setSupportZoom(false);
+        s.setBuiltInZoomControls(false);
+        s.setAllowFileAccess(true);
+
+        // --- CÀI ĐẶT USER AGENT ---
+        // String linuxUA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36";
+        // String ipadUA = "Mozilla/5.0 (iPad; CPU OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1";
+        // Bạn đang dùng Linux UA:
+        //s.setUserAgentString("Mozilla/5.0 (Linux; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36");
+        s.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36");
+		// --- THÊM MỚI: CHỐNG DSS VÀ KEEP SCREEN ON ---
+        // 1. Giữ màn hình luôn bật (quan trọng cho Android Auto để Surface không bị hủy)
+        setKeepScreenOn(true); 
+        
+        // 2. Tắt chế độ vẽ đè (Optimization)
+        setFocusable(true);
+        setFocusableInTouchMode(true);
+    }
+
+	@Override
+	protected FermataJsInterface createJsInterface() {
+		MainActivityDelegate a = MainActivityDelegate.get(getContext());
+		return js = new YoutubeJsInterface(this, new YoutubeMediaEngine(this, a));
+	}
+
+	@Override
+	public YoutubeAddon getAddon() {
+		return (YoutubeAddon) super.getAddon();
+	}
+
+	@Override
+	public void loadUrl(@NonNull String url) {
+		Log.d("Loading URL: " + url);
+		super.loadUrl(url);
+	}
+
+	@Override
+	public void goBack() {
+		MediaSessionCallback cb = MainActivityDelegate.get(getContext()).getMediaSessionCallback();
+		if (cb.getEngine() instanceof YoutubeMediaEngine) cb.onStop();
+		super.goBack();
+	}
+
+	@Override
+	protected void pageLoaded(String uri) {
+		attachListeners();
+		addFocusHighlight();
+		CookieManager.getInstance().flush();
+		//inject custom
+		nudgeQualityCap();
+		//injectInitialHacks();
+		//injectHealthWorker();
+	}
+    private void nudgeQualityCap() {
+        String js = "(function(){try{var p=document.getElementById('" + PLAYER_ID + "');if(p&&p.setPlaybackQualityRange)p.setPlaybackQualityRange('large');}catch(e){}})()";
+        evaluateJavascript(js, null);
+    }
+	/** Chèn SW Killer và Visibility Hack (Chạy 1 lần) - PHIÊN BẢN NÂNG CẤP */
+    private void injectInitialHacks() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("javascript:(function() {");
+        
+        // 1. SW Killer (Giữ nguyên)
+        sb.append("try{if('serviceWorker'in navigator)navigator.serviceWorker.getRegistrations().then(r=>r.forEach(s=>s.unregister()));}catch(e){}");
+        
+        // 2. Visibility & Focus Hack (NÂNG CẤP)
+        // Ngăn chặn sự kiện visibilitychange và blur lan tới YouTube
+        sb.append("try {");
+        sb.append("  var hack = { get: () => false, configurable: true };");
+        sb.append("  Object.defineProperty(document, 'hidden', hack);");
+        sb.append("  Object.defineProperty(document, 'webkitHidden', hack);"); // Hỗ trợ webkit cũ
+        sb.append("  Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });");
+        sb.append("  document.hasFocus = () => true;");
+        
+        // [MỚI] Chặn sự kiện 'visibilitychange' và 'blur' (quan trọng khi ẩn app)
+        sb.append("  window.addEventListener('visibilitychange', function(e) { e.stopImmediatePropagation(); }, true);");
+        sb.append("  window.addEventListener('blur', function(e) { e.stopImmediatePropagation(); }, true);");
+        sb.append("  window.addEventListener('mouseleave', function(e) { e.stopImmediatePropagation(); }, true);");
+        sb.append("  document.addEventListener('visibilitychange', function(e) { e.stopImmediatePropagation(); }, true);");
+		sb.append("	 window.addEventListener('pagehide', function(e) { e.stopImmediatePropagation(); }, true);");
+        sb.append("} catch(e) {}");
+        // --- THÊM ĐOẠN NÀY ---
+		// --- [MỚI] HACK AUDIO CONTEXT (QUAN TRỌNG CHO ANDROID AUTO) ---
+        sb.append("try {");
+        sb.append("  if (window.AudioContext || window.webkitAudioContext) {");
+        sb.append("    var AC = window.AudioContext || window.webkitAudioContext;");
+        sb.append("    var origSuspend = AC.prototype.suspend;");
+        // Ghi đè hàm suspend để nó không bao giờ có tác dụng
+        sb.append("    AC.prototype.suspend = function() { console.log('Fermata: Blocked suspend'); return Promise.resolve(); };");
+        // Tự động resume nếu bị system pause
+        sb.append("    setInterval(function(){ ");
+        sb.append("       if(window.fermataAC && window.fermataAC.state === 'suspended') { window.fermataAC.resume(); }");
+        sb.append("    }, 2000);");
+        sb.append("  }");
+        sb.append("} catch(e) {}");
+        // -------------------------------------------------------------
+        // Anti-Duplicate Flag
+        sb.append("if(window.fermataInjected)return;window.fermataInjected=true;");
+        sb.append("console.log('Fermata JS: Active Version ").append(OPT_VERSION).append("');");
+        
+        sb.append("})();");
+        evaluateJavascript(sb.toString(), null);
+    }
+	/** Buffer Keeper/Health Check (5000ms) - Tối ưu hóa tần suất ver.01*/
+	private void injectHealthWorker() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("javascript:(function() {");
+		sb.append("function healthCheck(){try{");
+		sb.append("var v=document.querySelector('video');var player=document.getElementById('").append(PLAYER_ID).append("');");
+		
+		// Ép phát lại & Tải lại luồng
+		sb.append("if(v){");
+		// [CẢI TIẾN] Chỉ chạy các kiểm tra hồi sinh nếu video không bị người dùng tạm dừng (đảm bảo đang cố gắng phát)
+		// Nếu v.paused là true (người dùng tạm dừng), bỏ qua việc kiểm tra lỗi nghiêm trọng để tiết kiệm tài nguyên.
+		sb.append("  if(!v.paused){"); 
+		sb.append("    // Kiểm tra lỗi hoặc kẹt mạng (networkState 3 = không có nguồn, readyState < 2 = chưa có dữ liệu)");
+		sb.append("    if (v.error || (v.networkState === 3 && v.readyState < 2)) {"); 
+		sb.append("      console.log('Fermata: Reviving stream...');");
+		sb.append("      if(player && player.getCurrentTime){var t=player.getCurrentTime();var id=player.getVideoData()['video_id'];if(id)player.loadVideoById(id,t);}");
+		sb.append("    }");
+		sb.append("  }");
+		sb.append("}"); 
+		sb.append("}catch(e){}}");
+		sb.append("setInterval(healthCheck, 5000);"); // [FIXED] Chạy mỗi 5 giây (Giảm tải CPU)
+		sb.append("})();");
+		evaluateJavascript(sb.toString(), null);
+	}
+	protected void submitForm() {
+		if (!me.aap.fermata.BuildConfig.AUTO) return;
+		loadUrl("javascript:\n" +
+				"var e = new KeyboardEvent('keydown',\n" +
+				"{ code: 'Enter', key: 'Enter', keyCode: 13, view: window, bubbles: true });\n" +
+				"document.activeElement.dispatchEvent(e);\n" +
+				"e = new KeyboardEvent('keyup',\n" +
+				"{ code: 'Enter', key: 'Enter', keyCode: 13, view: window, bubbles: true });\n" +
+				"document.activeElement.dispatchEvent(e);");
+	}
+
+	private void attachListeners() {
+		String debug = BuildConfig.D ? JS_EVENT + "(" + JS_VIDEO_FOUND + ", null);\n" : "";
+		String scale = getAddon().getScale().prefName();
+		loadUrl("javascript:\n" +
+				"function attachVideoListeners(v) {\n" +
+				"  if (v.getAttribute('FermataAttached') === 'true') return;\n" +
+				"  v.setAttribute('FermataAttached', 'true');\n" +
+				"  v.setAttribute('style', 'object-fit:" + scale + "');\n" + debug +
+				"  if ((v.currentTime > 0) && !v.paused && !v.ended) " + JS_EVENT + "(" + JS_VIDEO_PLAYING +
+				", v.currentSrc);\n" +
+				"  v.addEventListener('playing', function(e) {" + JS_EVENT + "(" + JS_VIDEO_PLAYING +
+				", v.currentSrc);});\n" +
+				"  v.addEventListener('pause', function(e) {" + JS_EVENT + "(" + JS_VIDEO_PAUSED +
+				", v.currentSrc);});\n" +
+				"  v.addEventListener('ended', function(e) {" + JS_EVENT + "(" + JS_VIDEO_ENDED +
+				", null);});\n" +
+				"}\n" +
+				"function findVideo() {\n" +
+				"  var video = document.querySelectorAll('video');" +
+				"  video.forEach(attachVideoListeners);\n" +
+				"   setTimeout(findVideo, 1000);\n" +
+				"}\n" +
+				"findVideo();");
+	}
+
+	protected boolean requestFullScreen() {
+		loadUrl("javascript: var v = document.querySelector('video');\n" +
+				"if ('webkitRequestFullscreen' in v) v.webkitRequestFullscreen();\n" +
+				"else if ('requestFullscreen' in v) v.requestFullscreen();\n" +
+				"else " + JS_EVENT + "(" + JS_ERR + ", 'Method requestFullscreen not found in ' + v);");
+		return true;
+	}
+
+	void play() {
+		loadUrl("javascript:var v = document.querySelector('video'); if (v != null) v.play();");
+	}
+
+	void pause() {
+		loadUrl("javascript:var v = document.querySelector('video'); if (v != null) v.pause();");
+	}
+
+	void stop() {
+		loadUrl("javascript:var v = document.querySelector('video');\n" +
+				"if (v != null) { v.currentTime = 0; v.pause(); }");
+	}
+
+	void prev() {
+		prevNext(false);
+	}
+
+	void next() {
+		prevNext(true);
+	}
+	/*private void prevNext(boolean next) {
+		FermataChromeClient chrome = getWebChromeClient();
+		if (chrome == null) return;
+		chrome.exitFullScreen().thenRun(() -> evaluateJavascript("""
+				function prevNextVideo() {
+				  const buttons = document.querySelectorAll('button.player-middle-controls-prev-next-button');
+				  console.log('Prev/Next buttons:', buttons);
+				  if (buttons) buttons[%d].click();
+				}
+				setTimeout(prevNextVideo, 600);
+				""".formatted(next ? 1 : 0), null));
+	}*/	
+
+	private void prevNext(boolean next) {
+        FermataChromeClient chrome = getWebChromeClient();
+        if (chrome == null) return;
+
+        String jsCommand = String.format(
+            "javascript:(function() {" +
+            "   var isNext = %s;" +
+            "   console.log('Fermata: Smart Navigating ' + (isNext ? 'Next' : 'Prev'));" +
+
+            // --- BƯỚC 1: DÙNG PHÍM TẮT (Shift+N / Shift+P) ---
+            "   try {" +
+            "       var keyChar = isNext ? 'N' : 'P';" +
+            "       var keyCode = isNext ? 78 : 80;" +
+            "       var modifiers = { shiftKey: true, bubbles: true, cancelable: true, view: window };" +
+            "       var eventDown = new KeyboardEvent('keydown', Object.assign(modifiers, { key: keyChar, code: 'Key' + keyChar, keyCode: keyCode, which: keyCode }));" +
+            "       document.dispatchEvent(eventDown);" +
+            "       var eventUp = new KeyboardEvent('keyup', Object.assign(modifiers, { key: keyChar, code: 'Key' + keyChar, keyCode: keyCode, which: keyCode }));" +
+            "       document.dispatchEvent(eventUp);" +
+            "   } catch(e) {}" +
+
+            // --- BƯỚC 2: TÌM VÀ CLICK NÚT (Dự phòng nếu phím tắt không ăn) ---
+            "   setTimeout(function() {" +
+            "       var btn = null;" +
+            
+            // 2.1. Tìm theo Class Desktop chuẩn
+            "       btn = document.querySelector(isNext ? '.ytp-next-button' : '.ytp-prev-button');" +
+            
+            // 2.2. Tìm theo ARIA LABEL (Đoạn bạn cần - hỗ trợ cả tiếng Anh và Tiếng Việt không dấu)" +
+            "       if (!btn) {" +
+            "           var query = isNext ? 'button[aria-label*=\"Next\"], button[aria-label*=\"tiếp\"]' : 'button[aria-label*=\"Previous\"], button[aria-label*=\"trước\"]';" +
+            "           btn = document.querySelector(query);" +
+            "       }" +
+
+            // 2.3. Tìm theo Class Mobile cũ
+            "       if (!btn) {" +
+            "           var mobileBtns = document.querySelectorAll('button.player-middle-controls-prev-next-button');" +
+            "           if (mobileBtns.length > 1) btn = mobileBtns[isNext ? 1 : 0];" +
+            "       }" +
+
+            // --- THỰC HIỆN CLICK (MÔ PHỎNG CHUỘT ĐẦY ĐỦ) ---
+            "       if (btn && btn.offsetParent !== null) {" +
+            "           var opts = { bubbles: true, cancelable: true, view: window };" +
+            "           btn.dispatchEvent(new MouseEvent('mousedown', opts));" +
+            "           btn.dispatchEvent(new MouseEvent('mouseup', opts));" +
+            "           btn.dispatchEvent(new MouseEvent('click', opts));" +
+            "           console.log('Fermata: Clicked button via DOM');" +
+            "       }" +
+            
+            // --- BƯỚC 3: CÙNG ĐƯỜNG THÌ TUA HẾT BÀI ---
+            "       else if (isNext) {" +
+            "           var v = document.querySelector('video');" +
+            "           if (v && !v.ended) { v.currentTime = v.duration; }" +
+            "       }" +
+            "   }, 150);" + // Chờ 150ms để phím tắt có tác dụng trước
+            "})()", 
+            next ? "true" : "false"
+        );
+
+        chrome.exitFullScreen().thenRun(() -> evaluateJavascript(jsCommand, null));
+    }
+
+	FutureSupplier<Long> getDuration() {
+		return getMilliseconds("duration");
+	}
+
+	FutureSupplier<Long> getPosition() {
+		return getMilliseconds("currentTime");
+	}
+    FutureSupplier<String> getVideoQualities() {
+        Promise<String> p = js.getResultPromise();
+        loadUrl("javascript:(function(){\n" +
+                "  try {\n" +
+                "    var p = document.getElementById('movie_player');\n" +
+                "    var levels = p.getAvailableQualityLevels();\n" + 
+                "    var res = '';\n" +
+                "    var current = p.getPlaybackQuality();\n" + 
+                "    if (levels && levels.length > 0) {\n" +
+                "      for (var i = 0; i < levels.length; i++) {\n" +
+                "        if (i > 0) res += ';';\n" +
+                "        if (levels[i] === current) res += '*';\n" +
+                "        var name = levels[i];\n" +
+                "        if (name === 'highres') name = 'High Res';\n" +
+                "        else if (name === 'hd2160') name = '4K';\n" +
+                "        else if (name === 'hd1440') name = '2K';\n" +
+                "        else if (name === 'hd1080') name = '1080p';\n" +
+                "        else if (name === 'hd720') name = '720p';\n" +
+                "        else if (name === 'large') name = '480p';\n" +
+                "        else if (name === 'medium') name = '360p';\n" +
+                "        else if (name === 'small') name = '240p';\n" +
+                "        else if (name === 'tiny') name = '144p';\n" +
+                "        res += name;\n" +
+                "      }\n" +
+                "      " + JS_EVENT + "(" + JS_VIDEO_QUALITIES + ", res);\n" +
+                "    } else { " + JS_EVENT + "(" + JS_VIDEO_QUALITIES + ", null); }\n" +
+                "  } catch(e) { " + JS_EVENT + "(" + JS_VIDEO_QUALITIES + ", null); }\n" +
+                "})()");
+        return p;
+    }	
+
+    void setVideoQuality(int idx) {
+        loadUrl("javascript:(function(){\n" +
+                "  try {\n" +
+                "    var p = document.getElementById('movie_player');\n" +
+                "    var levels = p.getAvailableQualityLevels();\n" +
+                "    if (levels && levels[" + idx + "]) {\n" +
+                "       var q = levels[" + idx + "];\n" +
+                "       p.setPlaybackQualityRange(q);\n" + 
+                "       p.setPlaybackQuality(q);\n" +
+                "    }\n" +
+                "  } catch(e) {}\n" +
+                "})()");
+    }	
+
+	private FutureSupplier<Long> getMilliseconds(String value) {
+		Promise<Long> p = new Promise<>();
+		evaluateJavascript(
+				"(function(){var v = document.querySelector('video'); return (v != null) ? v." + value +
+						" : 0})();",
+				v -> {
+					try {
+						p.complete((long) (Double.parseDouble(v) * 1000));
+					} catch (NumberFormatException ex) {
+						Log.d(ex);
+						p.complete(0L);
+					}
+				});
+		return p;
+	}
+
+	void setPosition(long position) {
+		double pos = position / 1000f;
+		loadUrl("javascript:var v = document.querySelector('video'); if (v != null) v.currentTime = " +
+				pos + ";");
+	}
+
+	FutureSupplier<Float> getSpeed() {
+		Promise<Float> p = new Promise<>();
+		evaluateJavascript(
+				"(function(){var v = document.querySelector('video'); return (v != null) ? v" +
+						".playbackRate" +
+						" " +
+						": 0})();",
+				v -> {
+					try {
+						p.complete(Float.parseFloat(v));
+					} catch (NumberFormatException ex) {
+						Log.d(ex);
+						p.complete(1f);
+					}
+				});
+		return p;
+	}
+
+	void setSpeed(float speed) {
+		loadUrl("javascript:var v = document.querySelector('video'); if (v != null) v.playbackRate =" +
+				" " +
+				speed + ";");
+	}
+
+	FutureSupplier<String> getVideoTitle() {
+		Promise<String> p = new Promise<>();
+		evaluateJavascript("document.title", p::complete);
+		return p;
+	}
+
+	void setScale(YoutubeAddon.VideoScale scale) {
+		getAddon().setScale(scale);
+		String p = scale.prefName();
+		loadUrl("javascript:" +
+				"document.querySelectorAll('video')" +
+				".forEach(v=> v.setAttribute('style', 'object-fit:" + p + "'));");
+	}
+	@Override
+	protected void onWindowVisibilityChanged(int visibility) {
+		// SIÊU FIX: Luôn báo WebView là VISIBLE dù app có bị background, màn xe tắt, hay Android Auto về Home
+		// Đây là cách DUY NHẤT để YouTube không kill stream khi chạy trên xe
+		super.onWindowVisibilityChanged(View.VISIBLE);
+        if (visibility != View.VISIBLE) {
+            requestLayout();
+            invalidate(); // Lệnh này ép View vẽ lại, giữ cho luồng xử lý không bị ngắt
+        }
+
+		// Thêm một lớp bảo vệ cực mạnh: nếu WebView bị detach khỏi window → báo lại ngay là VISIBLE
+		// (một số head-unit Android 11–14 hay làm trò này)
+		if (getWindowToken() == null) {
+			post(() -> {
+				if (getWindowToken() == null) {
+					// Vẫn chưa có window token → ép lại lần nữa sau 500ms
+					postDelayed(this::forceVisibilityHack, 500);
+				}
+			});
+		}
+	}
+
+	private void forceVisibilityHack() {
+		if (getWindowToken() == null) {
+			// Ép WebView nghĩ nó vẫn đang visible dù thực tế đã bị detach
+			super.onWindowVisibilityChanged(View.VISIBLE);
+		}
+	}
+
+	// --- THÊM CÁC HÀM NÀY VÀO TRONG CLASS YoutubeWebView ---
+/*
+    @Override
+    public void onPause() {
+        // TUYỆT ĐỐI KHÔNG GỌI super.onPause();
+        // Android Auto gọi hàm này ngay khi bạn chuyển tab.
+        // Bỏ qua để WebView tiếp tục chạy ngầm.
+    }
+
+    @Override
+    public void pauseTimers() {
+        // Chặn việc dừng đồng hồ Javascript.
+        // Không gọi super.pauseTimers(); 
+    }
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        // Luôn ép WebView tin rằng nó đang được người dùng nhìn vào.
+        super.onWindowFocusChanged(true);
+    }
+
+    @Override
+    public boolean hasWindowFocus() {
+        // Luôn trả về true để JS nghĩ rằng cửa sổ đang active
+        return true;
+    }
+
+    @Override
+    public boolean hasFocus() {
+        // Luôn trả về true
+        return true;
+    }
+    
+    // Thêm hàm này để chặn View bị ẩn khi mất focus trên Android Auto
+    @Override
+    protected void onDisplayHint(int hint) {
+        // Không làm gì cả, chặn hành vi mặc định
+    }
+    @Override
+    protected void onDetachedFromWindow() {
+        // TRÊN ANDROID AUTO: Khi chuyển tab, View có thể bị gỡ khỏi Window.
+        // Nếu gọi super, WebView sẽ bị hủy (destroy).
+        // Ta tạm thời chặn nó, nhưng lưu ý điều này có thể gây leak memory nhẹ (chấp nhận để chạy ngầm).
+        // Nếu bạn muốn an toàn hơn, hãy để super nhưng cẩn thận. 
+        // Lời khuyên cho case của bạn: Hãy thử comment dòng super lại.
+        // super.onDetachedFromWindow(); <--- THỬ BỎ DÒNG NÀY
+    }
+    
+    // Khắc phục lỗi "Mở lại app bị mất luồng":
+    // Khi mở lại, kích thước View thay đổi làm trang web bị layout lại.
+    @Override
+    protected void onSizeChanged(int w, int h, int ow, int oh) {
+        // Chỉ cho phép thay đổi size nếu kích thước mới hợp lệ
+        if (w > 0 && h > 0) {
+            super.onSizeChanged(w, h, ow, oh);
+        }
+    }*/
+}

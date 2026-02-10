@@ -1,0 +1,2 @@
+.\gradlew clean :fermata:packageAutoReleaseUniversalApk -PAPP_ID_SFX=".mazda.hb"
+

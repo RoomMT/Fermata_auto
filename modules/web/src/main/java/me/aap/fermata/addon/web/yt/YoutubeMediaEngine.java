@@ -78,11 +78,52 @@ class YoutubeMediaEngine implements MediaEngine, OverlayMenu.SelectionHandler {
 
     void playing(String url) {
         if (BuildConfig.AUTO && web.getAddon().skipAd()) {
-            web.loadUrl("javascript:\n" +
-                    "if (document.querySelectorAll('.ad-showing').length > 0) {\n" +
-                    "  var video = document.querySelector('video');\n" +
-                    "  if (video != null) video.currentTime = video.duration;\n" +
-                    "}");
+            web.loadUrl("javascript:(function() {\n" +
+                    "    if (window.fermataAdBlockerActive) return;\n" +
+                    "    window.fermataAdBlockerActive = true;\n" +
+                    "\n" +
+                    "    function checkAndSkip() {\n" +
+                    "        var video = document.querySelector('video');\n" +
+                    "        if (!video) return;\n" +
+                    "\n" +
+                    "        /* 1. Remove Banners */\n" +
+                    "        var banners = ['.ytp-ad-overlay-container', '.ytp-ad-image-overlay', '.ytp-ad-action-interstitial'];\n" +
+                    "        banners.forEach(function(sel) {\n" +
+                    "            document.querySelectorAll(sel).forEach(function(el) { el.style.display = 'none'; });\n" +
+                    "        });\n" +
+                    "\n" +
+                    "        /* 2. Detect Video Ad */\n" +
+                    "        var isAd = (document.querySelector('.ad-showing') || document.querySelector('.ad-interrupting') || document.querySelector('.ytp-ad-module video'));\n" +
+                    "\n" +
+                    "        if (isAd) {\n" +
+                    "            /* Mute during ad */\n" +
+                    "            if (!video.muted) video.muted = true;\n" +
+                    "\n" +
+                    "            /* Try clicking Skip Button */\n" +
+                    "            var btn = document.querySelector('.ytp-ad-skip-button') || \n" +
+                    "                      document.querySelector('.ytp-ad-skip-button-modern') || \n" +
+                    "                      document.querySelector('.ytp-skip-ad-button');\n" +
+                    "            if (btn) {\n" +
+                    "                btn.click();\n" +
+                    "            } else if (!isNaN(video.duration)) {\n" +
+                    "                /* Fallback: Fast Forward */\n" +
+                    "                video.currentTime = video.duration;\n" +
+                    "                video.playbackRate = 16;\n" +
+                    "            }\n" +
+                    "        } else {\n" +
+                    "            /* Unmute when ad is done */\n" +
+                    "            if (video.muted) {\n" +
+                    "                 video.muted = false;\n" +
+                    "                 video.playbackRate = 1;\n" +
+                    "            }\n" +
+                    "        }\n" +
+                    "    }\n" +
+                    "\n" +
+                    "    /* 3. Continuous Monitoring */\n" +
+                    "    var observer = new MutationObserver(checkAndSkip);\n" +
+                    "    observer.observe(document.body || document.documentElement, { childList: true, subtree: true });\n" +
+                    "    checkAndSkip();\n" +
+                    "})();");
         }
 
         if (url.startsWith("blob:"))
